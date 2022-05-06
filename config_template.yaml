@@ -1,0 +1,24 @@
+debug:
+  mode: false
+
+email:
+  provider: outlook
+  smpt:
+    host: smtp-mail.outlook.com
+    port: 587
+  sender: 
+    username: "your_username@outlook.com"
+    password: "your_password"
+  recipients:
+    - "your_recipient@gmail.com"
+
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  db: "your-db-name"
+  user: "your-username"
+  password: "your-pw"
+
+dashboard:
+  username: "admin"
+  password: "your_pw"
