@@ -44,7 +44,7 @@ COPY --from=builder \
         /go/Github/belle-masion/dashboard/dist/ \ 
         ./page/
 
-# executable
+# expose port
 EXPOSE 80
 
 # run executable
