@@ -466,7 +466,7 @@ func simpleAuthCheck(mode AuthMode) func(ctx *gin.Context) {
 				t, err := ctx.Cookie("_cookie")
 				token, ok := cache.Get("token")
 				if err != nil || !ok || t != token.(string) {
-					ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+					ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 					return
 				}
 				ctx.Next()
