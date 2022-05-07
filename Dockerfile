@@ -5,6 +5,9 @@
 # use golang-alpine as base image
 FROM golang:1.18.0-alpine3.15 AS builder
 
+# fix missing Git command
+RUN apk add git
+
 ENV GO115MODULE=on \ 
     CGO_ENABLED=0 \ 
     GOOS=linux \ 
