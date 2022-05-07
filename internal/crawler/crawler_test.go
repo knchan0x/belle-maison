@@ -71,17 +71,6 @@ func TestRetrieveProduct_ProductNotFound(t *testing.T) {
 	}
 }
 
-var mockResult = &Result{
-	ProductCode: "1129250",
-	Product: &Product{
-		Name: "シートマッサージャー",
-		Styles: []Style{
-			{StyleCode: "01001", ImageUrl: "https://pic2.bellemaison.jp/shop/cms/images/0000/catalog/1129250/1129250_h1_001.jpg", Colour: "Standard", Size: "Standard", Price: 6578, Stock: 4},
-		},
-	},
-	Err: nil,
-}
-
 func TestRetrieveProduct_Success(t *testing.T) {
 	client := getMockClientwithFile("./test/success.html")
 	c, err := NewCrawler(client)
@@ -122,6 +111,8 @@ func TestRetrieveProduct_Success(t *testing.T) {
 }
 
 func getMockClientwithFile(name string) *MockClient {
+	getMockHtmlPage()
+
 	file, err := os.ReadFile(name)
 	if err != nil {
 		log.Panic("test file not available")
@@ -136,4 +127,47 @@ func getMockClientwithFile(name string) *MockClient {
 		},
 	}
 	return client
+}
+
+// need to match with the html file downloaded (./test/success.html)
+var mockResult = &Result{
+	ProductCode: "1129250",
+	Product: &Product{
+		Name: "シートマッサージャー",
+		Styles: []Style{
+			{StyleCode: "01001", ImageUrl: "https://pic2.bellemaison.jp/shop/cms/images/0000/catalog/1129250/1129250_h1_001.jpg", Colour: "Standard", Size: "Standard", Price: 6578, Stock: 4},
+		},
+	},
+	Err: nil,
+}
+
+func getMockHtmlPage() {
+	if err := download("./test/success.html", "https://www.bellemaison.jp/shop/commodity/0000/1129250"); err != nil {
+		panic(err)
+	}
+
+	if err := download("./test/failed.html", "https://www.bellemaison.jp/shop/commodity/0000/1000000"); err != nil {
+		panic(err)
+	}
+}
+
+func download(filepath string, url string) error {
+
+	// get data
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// create file
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// write to file
+	_, err = io.Copy(out, resp.Body)
+	return err
 }
