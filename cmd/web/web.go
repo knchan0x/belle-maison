@@ -85,6 +85,11 @@ func (h *APIHandler) Run(addr string) {
 		h.web.Use(allowCrossOrigin)
 	}
 
+	// redirect / to /dashboard
+	h.web.GET("/", func(ctx *gin.Context) {
+		ctx.Redirect(http.StatusFound, "/dashboard")
+	})
+
 	fileBasePath := ""
 	_, err := os.Stat("./page/login.html")
 	if err == nil {
