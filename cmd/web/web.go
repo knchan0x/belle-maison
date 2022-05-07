@@ -456,6 +456,7 @@ func simpleAuthCheck(mode AuthMode) func(ctx *gin.Context) {
 				token, ok := cache.Get("token")
 				if err != nil || !ok || t != token.(string) {
 					ctx.Redirect(http.StatusFound, "/login")
+					return
 				}
 				ctx.Next()
 			}
@@ -466,6 +467,7 @@ func simpleAuthCheck(mode AuthMode) func(ctx *gin.Context) {
 				token, ok := cache.Get("token")
 				if err != nil || !ok || t != token.(string) {
 					ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+					return
 				}
 				ctx.Next()
 			}
