@@ -9,49 +9,73 @@ const (
 	NEVER_EXPIRED = 0
 )
 
-type item struct {
+type Cache interface {
+	Add(k interface{}, v Item)
+	Get(k interface{}) (v Item, ok bool)
+	Delete(k interface{})
+}
+
+type Item struct {
 	value     interface{}
 	timestamp time.Time
 	expiring  time.Duration
 }
 
-type cache struct {
-	items map[string]item
-}
-
-var c *cache = newCache()
-var mux *sync.RWMutex = new(sync.RWMutex)
-
-func newCache() *cache {
-	cache := cache{
-		items: make(map[string]item),
+func newCache() Cache {
+	cache := inMemoryCache{
+		items: make(map[interface{}]Item),
+		mux:   new(sync.RWMutex),
 	}
 	return &cache
 }
 
+var globalCache Cache = newCache()
+
 func Add(k string, v interface{}, expiring time.Duration) {
-	mux.Lock()
-	c.items[k] = item{value: v, timestamp: time.Now(), expiring: expiring}
-	mux.Unlock()
+	globalCache.Add(k, Item{value: v, timestamp: time.Now(), expiring: expiring})
 }
 
 func Get(k string) (v interface{}, ok bool) {
-	mux.RLock()
-	defer mux.RUnlock()
 
-	item, ok := c.items[k]
-
-	// expired, remove it and return nil
-	if item.expiring != NEVER_EXPIRED && time.Now().After(item.timestamp.Add(item.expiring)) {
-		delete(c.items, k)
+	v, ok = globalCache.Get(k)
+	if !ok {
 		return nil, false
 	}
 
-	return item.value, ok
+	// expired, remove it and return nil
+	if v.(Item).expiring != NEVER_EXPIRED && time.Now().After(v.(Item).timestamp.Add(v.(Item).expiring)) {
+		globalCache.Delete(k)
+		return nil, false
+	}
+
+	return v.(Item).value, true
 }
 
 func Delete(k string) {
-	mux.Lock()
+	globalCache.Delete(k)
+}
+
+type inMemoryCache struct {
+	items map[interface{}]Item
+	mux   *sync.RWMutex
+}
+
+func (c *inMemoryCache) Add(k interface{}, v Item) {
+	c.mux.Lock()
+	c.items[k] = v
+	c.mux.Unlock()
+}
+
+func (c *inMemoryCache) Get(k interface{}) (v Item, ok bool) {
+	c.mux.RLock()
+	v, ok = c.items[k]
+	c.mux.RUnlock()
+	return
+}
+
+func (c *inMemoryCache) Delete(k interface{}) {
+	c.mux.Lock()
 	delete(c.items, k)
-	mux.Unlock()
+	c.mux.Unlock()
+	return
 }
