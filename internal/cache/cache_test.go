@@ -7,12 +7,12 @@ import (
 
 var key, val = "test", "yes! test"
 
-func TestAdd(t *testing.T) {
+func Test_add(t *testing.T) {
 	Add(key, val, NEVER_EXPIRED)
 }
 
-func TestGet(t *testing.T) {
-	TestAdd(t)
+func Test_get(t *testing.T) {
+	Test_add(t)
 	got, ok := Get(key)
 	if !ok {
 		t.Errorf("cannot get value from key %s", key)
@@ -22,9 +22,9 @@ func TestGet(t *testing.T) {
 	}
 }
 
-func TestDelete(t *testing.T) {
-	TestAdd(t)
-	TestGet(t)
+func Test_delete(t *testing.T) {
+	Test_add(t)
+	Test_get(t)
 	Delete(key)
 	got, ok := Get(key)
 	if got != nil || ok {
@@ -32,7 +32,7 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-func TestMultiRoutineAdd(t *testing.T) {
+func Test_add_MultiRoutine(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		go func(i int) {
 			Add(fmt.Sprintf("%s - %d", key, i), fmt.Sprintf("%s - %d", val, i), NEVER_EXPIRED)
@@ -40,8 +40,8 @@ func TestMultiRoutineAdd(t *testing.T) {
 	}
 }
 
-func TestMultiRoutineGet(t *testing.T) {
-	TestMultiRoutineAdd(t)
+func Test_get_MultiRoutine(t *testing.T) {
+	Test_add_MultiRoutine(t)
 
 	for i := 0; i < 10; i++ {
 		go func(i int) {
@@ -56,9 +56,9 @@ func TestMultiRoutineGet(t *testing.T) {
 	}
 }
 
-func TestMultiRoutineDelete(t *testing.T) {
-	TestMultiRoutineAdd(t)
-	TestMultiRoutineGet(t)
+func Test_delete_MultiRoutine(t *testing.T) {
+	Test_add_MultiRoutine(t)
+	Test_get_MultiRoutine(t)
 
 	for i := 0; i < 10; i++ {
 		go func(i int) {
