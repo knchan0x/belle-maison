@@ -46,7 +46,7 @@ type Scraper interface {
 	ScrapingProducts(productCodes ...string) []*Result
 }
 
-// scraper implements Crawler interface
+// scraper implements Scraper interface
 type scraper struct {
 	httpClient HTTPClient
 }
