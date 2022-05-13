@@ -3,7 +3,7 @@ package db
 import (
 	"errors"
 
-	"github.com/knchan0x/belle-maison/internal/crawler"
+	"github.com/knchan0x/belle-maison/internal/scraper"
 	"gorm.io/gorm"
 )
 
@@ -23,8 +23,8 @@ type Handler interface {
 	// Product
 	GetProductByProductCode(string) (*Product, error)
 	GetProductAndStylesByProductCode(string) (*Product, error)
-	CreateProduct(*crawler.Result) (*Product, error)
-	UpdateProduct(*crawler.Result) error
+	CreateProduct(*scraper.Result) (*Product, error)
+	UpdateProduct(*scraper.Result) error
 
 	// Styles
 	GetStylesByProductId(uint) (map[string]*Style, error)
@@ -194,8 +194,8 @@ func (h *dataHandler) GetProductAndStylesByProductCode(productCode string) (*Pro
 
 var EMPTY_PRODUCT = errors.New("no product info for creation")
 
-// CreateProduct accepts *crawler.Result and returns *Product
-func (h *dataHandler) CreateProduct(result *crawler.Result) (*Product, error) {
+// CreateProduct accepts *scraper.Result and returns *Product
+func (h *dataHandler) CreateProduct(result *scraper.Result) (*Product, error) {
 	if result.Product == nil {
 		return nil, EMPTY_PRODUCT
 	}
@@ -239,7 +239,7 @@ func (h *dataHandler) addProduct(p *Product) error {
 	return nil
 }
 
-func (h *dataHandler) UpdateProduct(result *crawler.Result) error {
+func (h *dataHandler) UpdateProduct(result *scraper.Result) error {
 	product, err := h.GetProductByProductCode(result.ProductCode)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -261,7 +261,7 @@ func (h *dataHandler) UpdateProduct(result *crawler.Result) error {
 	}
 
 	// product has been removed, set price == 0 and stock == 0 for all styles
-	if result.Err == crawler.PRODUCT_NOT_FOUND {
+	if result.Err == scraper.PRODUCT_NOT_FOUND {
 		for idx := range product.Styles {
 			product.Styles[idx].PriceHistories = append(product.Styles[idx].PriceHistories, Price{Price: 0, Stock: 0})
 		}
