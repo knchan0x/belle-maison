@@ -13,10 +13,28 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/knchan0x/belle-maison/cmd/db"
 	"github.com/knchan0x/belle-maison/internal/cache"
-	"github.com/knchan0x/belle-maison/internal/crawler"
+	"github.com/knchan0x/belle-maison/internal/db"
+	"github.com/knchan0x/belle-maison/internal/scraper"
 	"gorm.io/gorm"
+)
+
+const (
+	cookie_name = "_cookie_belle_masion"
+
+	filePath_root_docker    = "./page"
+	filePath_root_localhost = "../page"
+
+	urlPath_root        = "/bellemasion"
+	urlPrefix_dashboard = "/dashboard"
+	urlPrefix_login     = "/login"
+	urlPrefix_api       = "/api"
+	urlPrefix_asset     = "/assets"
+)
+
+var (
+	urlPath_dashboard = urlPath_root + urlPrefix_dashboard
+	urlPath_login     = urlPath_root + urlPrefix_login
 )
 
 var debugMode = false
@@ -48,7 +66,7 @@ type User struct {
 type APIHandler struct {
 	admin       *User
 	web         *gin.Engine
-	crawler     crawler.Crawler
+	scraper     scraper.Scraper
 	dataHandler db.Handler
 	patterns    map[string]*regexp.Regexp
 }
@@ -63,15 +81,15 @@ func NewHandler(dataHandler db.Handler, admin *User) *APIHandler {
 
 	gin.SetMode(gin.ReleaseMode)
 
-	c, err := crawler.NewCrawler()
+	c, err := scraper.NewScraper()
 	if err != nil {
-		log.Fatalf("failed to initialize crawler: %v", err)
+		log.Fatalf("failed to initialize scraper: %v", err)
 	}
 
 	return &APIHandler{
 		admin:       admin,
 		web:         gin.Default(),
-		crawler:     c,
+		scraper:     c,
 		dataHandler: dataHandler,
 		patterns:    map[string]*regexp.Regexp{pattern_product_id: productIdPattern},
 	}
@@ -85,32 +103,35 @@ func (h *APIHandler) Run(addr string) {
 		h.web.Use(allowCrossOrigin)
 	}
 
+	// add root for easier configuration root path
+	root := h.web.Group(urlPath_root)
+
 	// redirect / to /dashboard
-	h.web.GET("/", func(ctx *gin.Context) {
-		ctx.Redirect(http.StatusFound, "/dashboard")
+	root.GET("/", func(ctx *gin.Context) {
+		ctx.Redirect(http.StatusFound, urlPath_dashboard)
 	})
 
 	fileBasePath := ""
-	_, err := os.Stat("./page/login.html")
+	_, err := os.Stat(filePath_root_docker + "/login.html")
 	if err == nil {
-		fileBasePath = "./page"
+		fileBasePath = filePath_root_docker
 	} else {
-		fileBasePath = "../page"
+		fileBasePath = filePath_root_localhost
 	}
-	h.web.StaticFile("/login", fileBasePath+"/login.html")
-	h.web.POST("/login", h.login)
+	root.StaticFile(urlPrefix_login, fileBasePath+"/login.html")
+	root.POST(urlPrefix_login, h.login)
 
-	api := h.web.Group("/api", simpleAuthCheck(AuthMode_Unauthorized))
+	api := root.Group(urlPrefix_api, simpleAuthCheck(AuthMode_Unauthorized))
 	api.GET("/product/:productCode", h.getProduct) // get product info
 	api.POST("/target/:productCode", h.addTarget)  // POST content: colour, size
 	api.DELETE("/target/:targetId", h.deleteTarget)
 	api.PATCH("/target/:targetId", h.updateTarget)
 	api.GET("/targets", h.getTargets) // get all products under tracing
 
-	dashboard := h.web.Group("/dashboard", simpleAuthCheck(AuthMode_Redirect))
+	dashboard := root.Group(urlPrefix_dashboard, simpleAuthCheck(AuthMode_Redirect))
 	dashboard.StaticFile("/", fileBasePath+"/index.html")
 
-	h.web.Static("assets", fileBasePath+"/assets")
+	root.Static(urlPrefix_asset, fileBasePath+"/assets")
 
 	log.Printf("Running web server on %s...", addr)
 	if err := h.web.Run(addr); err != nil {
@@ -126,12 +147,12 @@ func (h *APIHandler) getProduct(ctx *gin.Context) {
 		return
 	}
 
-	var r *crawler.Result
-	if c, ok := cache.Get("crawler_result_" + productCode); ok {
-		r = c.(*crawler.Result)
+	var r *scraper.Result
+	if c, ok := cache.Get("scraper_result_" + productCode); ok {
+		r = c.(*scraper.Result)
 	} else {
-		r = h.crawler.RetrieveProduct(productCode)
-		cache.Add("crawler_result_"+productCode, r, time.Hour)
+		r = h.scraper.ScrapingProduct(productCode)
+		cache.Add("scraper_result_"+productCode, r, time.Hour)
 	}
 
 	if r.Err != nil {
@@ -166,13 +187,13 @@ func (h *APIHandler) addTarget(ctx *gin.Context) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	var r *crawler.Result
+	var r *scraper.Result
 	go func() {
-		if c, ok := cache.Get("crawler_result_" + productCode); ok {
-			r = c.(*crawler.Result)
+		if c, ok := cache.Get("scraper_result_" + productCode); ok {
+			r = c.(*scraper.Result)
 		} else {
-			r = h.crawler.RetrieveProduct(productCode)
-			cache.Add("crawler_result_"+productCode, r, time.Hour)
+			r = h.scraper.ScrapingProduct(productCode)
+			cache.Add("scraper_result_"+productCode, r, time.Hour)
 		}
 		wg.Done()
 	}()
@@ -418,8 +439,8 @@ func (h *APIHandler) login(ctx *gin.Context) {
 	token := hex.EncodeToString(md5.Sum(nil))
 
 	cache.Add("token", token, time.Hour)
-	ctx.SetCookie("_cookie", token, 60*60, "/", "", true, true)
-	ctx.Redirect(http.StatusFound, "/dashboard")
+	ctx.SetCookie(cookie_name, token, 60*60, "/", "", false, true) // secure flag causes only https allowed to set cookie
+	ctx.Redirect(http.StatusFound, urlPath_dashboard)
 }
 
 // allowCrossOrigin middleware handles CORS issues
@@ -429,6 +450,7 @@ func allowCrossOrigin(ctx *gin.Context) {
 	ctx.Header("Access-Control-Allow-Methods", "GET, POST, DELETE, PATCH, OPTIONS")
 	ctx.Header("Access-Control-Allow-Headers", "Content-Type")
 	ctx.Header("Access-Control-Max-Age", "86400")
+
 	if ctx.Request.Method == http.MethodOptions {
 		ctx.Status(http.StatusOK)
 		return
@@ -452,10 +474,10 @@ func simpleAuthCheck(mode AuthMode) func(ctx *gin.Context) {
 	if !simpleAuthSuspended {
 		if mode == AuthMode_Redirect {
 			return func(ctx *gin.Context) {
-				t, err := ctx.Cookie("_cookie")
+				t, err := ctx.Cookie(cookie_name)
 				token, ok := cache.Get("token")
 				if err != nil || !ok || t != token.(string) {
-					ctx.Redirect(http.StatusFound, "/login")
+					ctx.Redirect(http.StatusFound, urlPath_login)
 					return
 				}
 				ctx.Next()
@@ -463,7 +485,7 @@ func simpleAuthCheck(mode AuthMode) func(ctx *gin.Context) {
 		}
 		if mode == AuthMode_Unauthorized {
 			return func(ctx *gin.Context) {
-				t, err := ctx.Cookie("_cookie")
+				t, err := ctx.Cookie(cookie_name)
 				token, ok := cache.Get("token")
 				if err != nil || !ok || t != token.(string) {
 					ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})

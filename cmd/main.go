@@ -4,9 +4,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/knchan0x/belle-maison/cmd/db"
 	"github.com/knchan0x/belle-maison/cmd/scheduler"
 	"github.com/knchan0x/belle-maison/cmd/web"
+	"github.com/knchan0x/belle-maison/internal/db"
 	"github.com/knchan0x/belle-maison/internal/email"
 	"github.com/spf13/viper"
 )

@@ -7,28 +7,28 @@ import (
 
 	"github.com/go-co-op/gocron"
 	"github.com/knchan0x/belle-maison/cmd/db"
-	"github.com/knchan0x/belle-maison/internal/crawler"
 	"github.com/knchan0x/belle-maison/internal/email"
+	"github.com/knchan0x/belle-maison/internal/scraper"
 )
 
 // scheduler runs jobs according to pre-defined schedule
 type scheduler struct {
 	scheduler   *gocron.Scheduler
-	crawler     crawler.Crawler
+	scraper     scraper.Scraper
 	dataHandler db.Handler
 	jobs        []string // tasks pending to perform
 }
 
 // NewScheduler returns new scheduler
 func NewScheduler(dataHandler db.Handler) *scheduler {
-	c, err := crawler.NewCrawler()
+	c, err := scraper.NewScraper()
 	if err != nil {
-		log.Fatalf("failed to initialize crawler: %v", err)
+		log.Fatalf("failed to initialize scraper: %v", err)
 	}
 
 	return &scheduler{
 		scheduler:   gocron.NewScheduler(time.UTC),
-		crawler:     c,
+		scraper:     c,
 		dataHandler: dataHandler,
 		jobs:        []string{},
 	}
@@ -58,28 +58,28 @@ func (s *scheduler) RunAsync() {
 		log.Printf("daily-report: %v", err)
 	}
 
-	_, err = s.scheduler.Every(1).Hour().At("00:00").Tag("crawling").Do(s.StartCrawling)
+	_, err = s.scheduler.Every(1).Hour().At("00:00").Tag("crawling").Do(s.StartScraping)
 	if err != nil {
 		log.Printf("crawling: %v", err)
 	}
 
-	log.Println("Crawler starts working...")
+	log.Println("scraper starts working...")
 	s.scheduler.StartAsync()
 }
 
-// StartCrawling activates crawler to preform crawling tasks
-func (s *scheduler) StartCrawling() {
+// StartScraping activates scraper to preform crawling tasks
+func (s *scheduler) StartScraping() {
 	log.Println("start crawling...")
 	if s.jobs == nil || len(s.jobs) <= 0 {
 		log.Println("no job, end crawling")
 		return
 	}
 
-	var results []*crawler.Result
-	results = s.crawler.RetrieveProducts(s.jobs...)
+	var results []*scraper.Result
+	results = s.scraper.ScrapingProducts(s.jobs...)
 
 	for _, result := range results {
-		if result.Err != nil && result.Err != crawler.PRODUCT_NOT_FOUND {
+		if result.Err != nil && result.Err != scraper.PRODUCT_NOT_FOUND {
 			s.jobs = append(s.jobs, result.ProductCode)
 		} else {
 			err := s.dataHandler.UpdateProduct(result)
