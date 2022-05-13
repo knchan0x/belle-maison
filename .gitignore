@@ -9,7 +9,7 @@
 *.test
 
 # exclude html files for test
-internal/crawler/test/
+internal/scraper/test/
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
