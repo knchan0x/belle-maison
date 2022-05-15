@@ -21,6 +21,10 @@ internal/scraper/test/
 configs.*
 config.*
 .env
+docker-compose.*
+
+# other than config package
+!internal/config/config.go
 
 # Editor directories and files
 .vscode
