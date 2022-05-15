@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  web:
+    platform: linux/amd64
+    image: your-registry/web:your-version
+    build:
+      context: .
+      dockerfile: ./cmd/web/Dockerfile
+
+  scheduler:
+    platform: linux/amd64
+    image: your-registry/scheduler:your-version
+    build:
+      context: .
+      dockerfile: ./cmd/scheduler/Dockerfile
