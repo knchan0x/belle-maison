@@ -2,11 +2,36 @@ package main
 
 import (
 	"log"
+	"net/http"
+	"os"
 
+	"github.com/gin-gonic/gin"
+	"github.com/knchan0x/belle-maison/cmd/web/auth"
 	"github.com/knchan0x/belle-maison/cmd/web/middleware"
+	"github.com/knchan0x/belle-maison/cmd/web/route"
 	"github.com/knchan0x/belle-maison/internal/config"
 	"github.com/knchan0x/belle-maison/internal/db"
 	"github.com/knchan0x/belle-maison/internal/email"
+	"github.com/knchan0x/belle-maison/internal/scraper"
+)
+
+const (
+	cookie_name = "_cookie_"
+	addr        = ":80"
+
+	filePath_root_docker    = "./page"
+	filePath_root_localhost = "../../page"
+
+	urlPath_root        = "/bellemasion"
+	urlPrefix_dashboard = "/dashboard"
+	urlPrefix_login     = "/login"
+	urlPrefix_api       = "/api"
+	urlPrefix_asset     = "/assets"
+)
+
+var (
+	urlPath_dashboard = urlPath_root + urlPrefix_dashboard
+	urlPath_login     = urlPath_root + urlPrefix_login
 )
 
 func init() {
@@ -52,12 +77,59 @@ func main() {
 	// set data handler
 	dataHandler := db.GetHandler(dbClient)
 
-	// set api gateway and dashboard
-	SetDebugMode(config.GetBool("debug.mode"))
+	// set auth
+	auth.SetAdmin(config.GetString("dashboard.username"), config.GetString("dashboard.password"))
+	auth.SetCookieName(cookie_name)
+
+	// activate auth middleware
 	middleware.ActivateSimpleAuth(!config.GetBool("debug.mode"))
-	web := NewHandler(dataHandler, &User{
-		Username: config.GetString("dashboard.username"),
-		Password: config.GetString("dashboard.password"),
+
+	// configure scraper
+	scraper, err := scraper.NewScraper()
+	if err != nil {
+		log.Fatalf("failed to initialize scraper: %v", err)
+	}
+
+	// set gin mode
+	gin.SetMode(gin.ReleaseMode)
+
+	// configure gin
+	web := gin.Default()
+	if config.GetBool("debug.mode") {
+		web.Use(middleware.AllowCrossOrigin("http://localhost:3000"))
+	}
+
+	// add root for easier configuration root path
+	root := web.Group(urlPath_root)
+
+	// redirect / to /dashboard
+	root.GET("/", func(ctx *gin.Context) {
+		ctx.Redirect(http.StatusFound, urlPath_dashboard)
 	})
-	web.Run(":80")
+
+	fileBasePath := ""
+	if _, err := os.Stat(filePath_root_docker + "/login.html"); err == nil {
+		fileBasePath = filePath_root_docker
+	} else {
+		fileBasePath = filePath_root_localhost
+	}
+	root.StaticFile(urlPrefix_login, fileBasePath+"/login.html")
+	root.POST(urlPrefix_login, route.Login(urlPath_dashboard))
+
+	api := root.Group(urlPrefix_api, middleware.SimpleAuth(middleware.AuthMode_Unauthorized))
+	api.GET("/product/:productCode", middleware.Validate(middleware.ProductCode), route.GetProduct(scraper))             // get product info
+	api.POST("/target/:productCode", middleware.Validate(middleware.ProductCode), route.AddTarget(scraper, dataHandler)) // POST content: colour, size
+	api.DELETE("/target/:targetId", route.DeleteTarget(dataHandler))
+	api.PATCH("/target/:targetId", route.UpdateTarget(dataHandler))
+	api.GET("/targets", route.GetTargets(dataHandler)) // get all products under tracing
+
+	dashboard := root.Group(urlPrefix_dashboard, middleware.SimpleAuth(middleware.AuthMode_Redirect, urlPath_login))
+	dashboard.StaticFile("/", fileBasePath+"/index.html")
+
+	root.Static(urlPrefix_asset, fileBasePath+"/assets")
+
+	log.Printf("Running web server on %s...", addr)
+	if err := web.Run(addr); err != nil {
+		log.Fatalf("Unable to start API Server: %v", err)
+	}
 }

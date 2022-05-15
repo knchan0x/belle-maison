@@ -1,1 +1,36 @@
 package route
+
+import (
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/knchan0x/belle-maison/internal/cache"
+	"github.com/knchan0x/belle-maison/internal/scraper"
+)
+
+// get product info
+func GetProduct(s scraper.Scraper) func(*gin.Context) {
+
+	return func(ctx *gin.Context) {
+		productCode := ctx.Param("productCode")
+		var r *scraper.Result
+		if c, ok := cache.Get("scraper_result_" + productCode); ok {
+			r = c.(*scraper.Result)
+		} else {
+			r = s.ScrapingProduct(productCode)
+			cache.Add("scraper_result_"+productCode, r, time.Hour)
+		}
+
+		if r.Err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": r.Err})
+			return
+		}
+		if r.Product == nil {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
+			return
+		}
+
+		ctx.JSON(http.StatusOK, r)
+	}
+}
