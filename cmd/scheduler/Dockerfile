@@ -20,7 +20,7 @@ COPY .  Github/belle-masion
 WORKDIR Github/belle-masion/cmd/scheduler
 
 # build executable
-RUN go build -o scheduler-endpoint .
+RUN go build -o scheduler .
 
 ###########################################################
 # stage 2: copy the executable and build the actual image #
@@ -33,9 +33,9 @@ FROM alpine:3.15
 
 # copy executable and config file to project root
 COPY --from=builder \ 
-        /go/Github/belle-masion/cmd/scheduler/scheduler-endpoint \ 
+        /go/Github/belle-masion/cmd/scheduler/scheduler \ 
         /go/Github/belle-masion/config.yaml \ 
         ./
 
 # run executable
-CMD ["./scheduler-endpoint"]
+CMD ["./scheduler"]
