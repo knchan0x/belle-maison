@@ -20,7 +20,7 @@ COPY .  Github/belle-masion
 WORKDIR Github/belle-masion/cmd/web
 
 # build executable
-RUN go build -o web-endpoint .
+RUN go build -o endpoint .
 
 ###########################################################
 # stage 2: copy the executable and build the actual image #
@@ -33,7 +33,7 @@ FROM alpine:3.15
 
 # copy executable and config file to project root
 COPY --from=builder \ 
-        /go/Github/belle-masion/cmd/web/web-endpoint \ 
+        /go/Github/belle-masion/cmd/web/endpoint \ 
         /go/Github/belle-masion/config.yaml \ 
         ./
 
@@ -51,4 +51,4 @@ COPY --from=builder \
 EXPOSE 80
 
 # run executable
-CMD ["./web-endpoint"]
+CMD ["./endpoint"]
