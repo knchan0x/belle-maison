@@ -3,14 +3,9 @@ package email
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/smtp"
 	"strconv"
 	"strings"
-)
-
-const (
-	Outlook = "Outlook"
 )
 
 type EmailSetting struct {
@@ -22,19 +17,32 @@ type EmailSetting struct {
 	Recipients      []string
 }
 
+var (
+	MissingSettings = errors.New("no email setting provided")
+)
+
 var e *EmailSetting
 
 func ConfigEmailService(settings *EmailSetting) {
 	e = settings
 }
 
-func SendEmail(subject string, body string, v ...interface{}) {
+// TestEmailService send a test message to email address provided
+func TestEmailService(email string) error {
+	temp := e.Recipients
+	e.Recipients = []string{email}
+	err := SendEmail("Testing", "This is a testing message.")
+	e.Recipients = temp
+	return err
+}
+
+func SendEmail(subject string, body string, v ...interface{}) error {
 	if e == nil {
-		log.Fatalln("no email setting provided")
+		return MissingSettings
 	}
 
 	var auth smtp.Auth
-	if e.ServiceProvider != Outlook {
+	if e.ServiceProvider != "Outlook" && e.ServiceProvider != "outlook" {
 		auth = smtp.PlainAuth("", e.User, e.Password, e.Host)
 	} else {
 		auth = OutlookLoginAuth(e.User, e.Password)
@@ -47,15 +55,15 @@ func SendEmail(subject string, body string, v ...interface{}) {
 	})
 
 	if err := send(auth, msg); err != nil {
-		log.Printf("failed to send email: %v\n", err)
-		log.Printf("massage to be sent:\n")
-		log.Printf(msg)
+		return fmt.Errorf("failed to send email: %v\nmassage to be sent:\n%v", err, msg)
 	}
+
+	return nil
 }
 
 func send(auth smtp.Auth, msg string) error {
 	if e == nil {
-		log.Fatalln("no email setting provided")
+		return MissingSettings
 	}
 
 	return smtp.SendMail(e.Host+":"+strconv.Itoa(e.Port), auth, e.User, e.Recipients, []byte(msg))
