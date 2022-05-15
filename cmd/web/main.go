@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/knchan0x/belle-maison/cmd/web/middleware"
 	"github.com/knchan0x/belle-maison/internal/config"
 	"github.com/knchan0x/belle-maison/internal/db"
 	"github.com/knchan0x/belle-maison/internal/email"
@@ -53,7 +54,7 @@ func main() {
 
 	// set api gateway and dashboard
 	SetDebugMode(config.GetBool("debug.mode"))
-	ActivateSimpleAuth(!config.GetBool("debug.mode"))
+	middleware.ActivateSimpleAuth(!config.GetBool("debug.mode"))
 	web := NewHandler(dataHandler, &User{
 		Username: config.GetString("dashboard.username"),
 		Password: config.GetString("dashboard.password"),

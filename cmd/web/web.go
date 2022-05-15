@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/knchan0x/belle-maison/cmd/web/middleware"
 	"github.com/knchan0x/belle-maison/internal/cache"
 	"github.com/knchan0x/belle-maison/internal/db"
 	"github.com/knchan0x/belle-maison/internal/scraper"
@@ -39,14 +40,8 @@ var (
 
 var debugMode = false
 
-var simpleAuthSuspended = false
-
 func SetDebugMode(isDebugMode bool) {
 	debugMode = isDebugMode
-}
-
-func ActivateSimpleAuth(isActivate bool) {
-	simpleAuthSuspended = !isActivate
 }
 
 const (
@@ -100,7 +95,7 @@ func NewHandler(dataHandler db.Handler, admin *User) *APIHandler {
 // middleware during debug mode sets to true
 func (h *APIHandler) Run(addr string) {
 	if debugMode {
-		h.web.Use(allowCrossOrigin)
+		h.web.Use(middleware.AllowCrossOrigin)
 	}
 
 	// add root for easier configuration root path
@@ -121,14 +116,14 @@ func (h *APIHandler) Run(addr string) {
 	root.StaticFile(urlPrefix_login, fileBasePath+"/login.html")
 	root.POST(urlPrefix_login, h.login)
 
-	api := root.Group(urlPrefix_api, simpleAuthCheck(AuthMode_Unauthorized))
+	api := root.Group(urlPrefix_api, middleware.SimpleAuth(middleware.AuthMode_Unauthorized))
 	api.GET("/product/:productCode", h.getProduct) // get product info
 	api.POST("/target/:productCode", h.addTarget)  // POST content: colour, size
 	api.DELETE("/target/:targetId", h.deleteTarget)
 	api.PATCH("/target/:targetId", h.updateTarget)
 	api.GET("/targets", h.getTargets) // get all products under tracing
 
-	dashboard := root.Group(urlPrefix_dashboard, simpleAuthCheck(AuthMode_Redirect))
+	dashboard := root.Group(urlPrefix_dashboard, middleware.SimpleAuth(middleware.AuthMode_Redirect))
 	dashboard.StaticFile("/", fileBasePath+"/index.html")
 
 	root.Static(urlPrefix_asset, fileBasePath+"/assets")
@@ -441,62 +436,4 @@ func (h *APIHandler) login(ctx *gin.Context) {
 	cache.Add("token", token, time.Hour)
 	ctx.SetCookie(cookie_name, token, 60*60, "/", "", false, true) // secure flag causes only https allowed to set cookie
 	ctx.Redirect(http.StatusFound, urlPath_dashboard)
-}
-
-// allowCrossOrigin middleware handles CORS issues
-// when debuging Vue app in http://localhost:3000
-func allowCrossOrigin(ctx *gin.Context) {
-	ctx.Header("Access-Control-Allow-Origin", "http://localhost:3000")
-	ctx.Header("Access-Control-Allow-Methods", "GET, POST, DELETE, PATCH, OPTIONS")
-	ctx.Header("Access-Control-Allow-Headers", "Content-Type")
-	ctx.Header("Access-Control-Max-Age", "86400")
-
-	if ctx.Request.Method == http.MethodOptions {
-		ctx.Status(http.StatusOK)
-		return
-	}
-	ctx.Next()
-}
-
-type AuthMode string
-
-const (
-	AuthMode_Redirect     AuthMode = "Redirect"
-	AuthMode_Unauthorized AuthMode = "Unauthorized"
-)
-
-// simpleAuthCheck returns gin middleware with mode specified.
-// This middleware will check is the user permit to access
-//
-// - AuthMode_Redirect = redirect to login page
-// - AuthMode_Unauthorized = return JSON with 401 unauthorized
-func simpleAuthCheck(mode AuthMode) func(ctx *gin.Context) {
-	if !simpleAuthSuspended {
-		if mode == AuthMode_Redirect {
-			return func(ctx *gin.Context) {
-				t, err := ctx.Cookie(cookie_name)
-				token, ok := cache.Get("token")
-				if err != nil || !ok || t != token.(string) {
-					ctx.Redirect(http.StatusFound, urlPath_login)
-					return
-				}
-				ctx.Next()
-			}
-		}
-		if mode == AuthMode_Unauthorized {
-			return func(ctx *gin.Context) {
-				t, err := ctx.Cookie(cookie_name)
-				token, ok := cache.Get("token")
-				if err != nil || !ok || t != token.(string) {
-					ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-					return
-				}
-				ctx.Next()
-			}
-		}
-	}
-
-	return func(ctx *gin.Context) {
-		ctx.Next() // by pass
-	}
 }
