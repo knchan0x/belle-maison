@@ -1,4 +1,4 @@
-package scheduler
+package main
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/go-co-op/gocron"
-	"github.com/knchan0x/belle-maison/cmd/db"
+	"github.com/knchan0x/belle-maison/internal/db"
 	"github.com/knchan0x/belle-maison/internal/email"
 	"github.com/knchan0x/belle-maison/internal/scraper"
 )
@@ -34,7 +34,8 @@ func NewScheduler(dataHandler db.Handler) *scheduler {
 	}
 }
 
-// RunAsync runs Scheduler. Schedule defined as following
+// Run runs Scheduler, it will block the current thread.
+// Schedule defined as following
 //
 // - clean-tasks at 23:59 UTC and schedule tasks for coming day at 00:00 UTC
 //
@@ -42,7 +43,7 @@ func NewScheduler(dataHandler db.Handler) *scheduler {
 //
 // - crawling (run tasks) every hour starting from 00:30 UTC
 //
-func (s *scheduler) RunAsync() {
+func (s *scheduler) Run() {
 	_, err := s.scheduler.Every(1).Day().At("00:00").Tag("schedule-tasks").Do(s.assignJobs)
 	if err != nil {
 		log.Printf("schedule-tasks: %v", err)
@@ -64,7 +65,7 @@ func (s *scheduler) RunAsync() {
 	}
 
 	log.Println("scraper starts working...")
-	s.scheduler.StartAsync()
+	s.scheduler.StartBlocking()
 }
 
 // StartScraping activates scraper to preform crawling tasks
@@ -116,7 +117,9 @@ func (s *scheduler) GenerateDailyReport() {
 	}
 
 	if emailMsg != "" {
-		email.SendEmail("Belle Masion Price Tracker", emailMsg)
+		if err := email.SendEmail("Belle Masion Price Tracker", emailMsg); err != nil {
+			log.Println(err)
+		}
 	}
 
 	log.Println("done")

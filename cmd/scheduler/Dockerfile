@@ -17,10 +17,10 @@ ENV GO115MODULE=on \
 COPY .  Github/belle-masion
 
 # move to working directory
-WORKDIR Github/belle-masion/cmd
+WORKDIR Github/belle-masion/cmd/scheduler
 
 # build executable
-RUN go build -o endpoint .
+RUN go build -o scheduler-endpoint .
 
 ###########################################################
 # stage 2: copy the executable and build the actual image #
@@ -33,22 +33,9 @@ FROM alpine:3.15
 
 # copy executable and config file to project root
 COPY --from=builder \ 
-        /go/Github/belle-masion/cmd/endpoint \ 
+        /go/Github/belle-masion/cmd/scheduler/scheduler-endpoint \ 
         /go/Github/belle-masion/config.yaml \ 
         ./
 
-# copy html page, js and css to project/page
-COPY --from=builder \ 
-        /go/Github/belle-masion/page/ \ 
-        ./page/
-
-# copy dashboard to to project/page
-COPY --from=builder \ 
-        /go/Github/belle-masion/dashboard/dist/ \ 
-        ./page/
-
-# expose port
-EXPOSE 80
-
 # run executable
-CMD ["./endpoint"]
+CMD ["./scheduler-endpoint"]
