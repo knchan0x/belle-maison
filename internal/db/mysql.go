@@ -21,9 +21,9 @@ type DbSettings struct {
 
 var debugMode = false
 
-// NewClient return *gorm.DB with DbSettings provided.
+// NewGORMClient return *gorm.DB with DbSettings provided.
 // It will also set MaxIdleConns=10, MaxOpenConns=20, ConnMaxLifetime=1hour implicitly.
-func NewClient(settings *DbSettings) (*gorm.DB, error) {
+func NewGORMClient(settings *DbSettings) (*gorm.DB, error) {
 	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True", settings.User, settings.Password, settings.Host, settings.Port, settings.DB)
 
 	var level logger.LogLevel
