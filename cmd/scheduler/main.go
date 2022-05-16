@@ -26,13 +26,12 @@ func main() {
 		User:     config.GetString("mysql.user"),
 		Password: config.GetString("mysql.password"),
 	})
-
 	if err != nil {
 		panic("failed to connect database")
 	}
 
 	// config email service
-	email.ConfigEmailService(&email.EmailSetting{
+	email.ConfigService(&email.EmailSetting{
 		ServiceProvider: config.GetString("email.provider"),
 		Host:            config.GetString("email.smpt.host"),
 		Port:            config.GetInt("email.smpt.port"),
@@ -41,7 +40,7 @@ func main() {
 		Recipients:      config.GetStringSlice("email.recipients"),
 	})
 
-	if err := email.TestEmailService(config.GetString("email.sender.username")); err != nil {
+	if err := email.Test(config.GetString("email.sender.username")); err != nil {
 		log.Panicf("failed to connect email service: %v", err)
 	}
 
@@ -53,5 +52,20 @@ func main() {
 
 	// set schedule
 	s := NewScheduler(dataHandler)
-	s.Run()
+	if _, err := s.Every(1).Day().At("00:00").Tag("schedule-tasks").Do(s.assignJobs); err != nil {
+		log.Printf("schedule-tasks: %v", err)
+	}
+	if _, err := s.Every(1).Day().At("23:59").Tag("clean-tasks").Do(s.cleanJobs); err != nil {
+		log.Printf("clean-tasks: %v", err)
+	}
+	if _, err := s.Every(1).Day().At("04:00").Tag("daily-report").Do(s.GenerateDailyReport); err != nil {
+		log.Printf("daily-report: %v", err)
+	}
+	if _, err := s.Every(1).Hour().At("00:00").Tag("crawling").Do(s.StartScraping); err != nil {
+		log.Printf("scraping: %v", err)
+	}
+
+	// start scheduler
+	log.Println("scraper starts working...")
+	s.StartBlocking()
 }

@@ -11,9 +11,10 @@ import (
 	"github.com/knchan0x/belle-maison/internal/scraper"
 )
 
-// scheduler runs jobs according to pre-defined schedule
+// scheduler runs jobs according to pre-defined schedule.
+// It is a wrapper of *gocron.Scheduler.
 type scheduler struct {
-	scheduler   *gocron.Scheduler
+	*gocron.Scheduler
 	scraper     scraper.Scraper
 	dataHandler db.Handler
 	jobs        []string // tasks pending to perform
@@ -26,46 +27,13 @@ func NewScheduler(dataHandler db.Handler) *scheduler {
 		log.Fatalf("failed to initialize scraper: %v", err)
 	}
 
-	return &scheduler{
-		scheduler:   gocron.NewScheduler(time.UTC),
+	s := &scheduler{
 		scraper:     c,
 		dataHandler: dataHandler,
 		jobs:        []string{},
 	}
-}
-
-// Run runs Scheduler, it will block the current thread.
-// Schedule defined as following
-//
-// - clean-tasks at 23:59 UTC and schedule tasks for coming day at 00:00 UTC
-//
-// - generate daily report at 04:00 UTC
-//
-// - crawling (run tasks) every hour starting from 00:30 UTC
-//
-func (s *scheduler) Run() {
-	_, err := s.scheduler.Every(1).Day().At("00:00").Tag("schedule-tasks").Do(s.assignJobs)
-	if err != nil {
-		log.Printf("schedule-tasks: %v", err)
-	}
-
-	_, err = s.scheduler.Every(1).Day().At("23:59").Tag("clean-tasks").Do(s.cleanJobs)
-	if err != nil {
-		log.Printf("clean-tasks: %v", err)
-	}
-
-	_, err = s.scheduler.Every(1).Day().At("04:00").Tag("daily-report").Do(s.GenerateDailyReport)
-	if err != nil {
-		log.Printf("daily-report: %v", err)
-	}
-
-	_, err = s.scheduler.Every(1).Hour().At("00:00").Tag("crawling").Do(s.StartScraping)
-	if err != nil {
-		log.Printf("crawling: %v", err)
-	}
-
-	log.Println("scraper starts working...")
-	s.scheduler.StartBlocking()
+	s.Scheduler = gocron.NewScheduler(time.UTC)
+	return s
 }
 
 // StartScraping activates scraper to preform crawling tasks
@@ -77,7 +45,7 @@ func (s *scheduler) StartScraping() {
 	}
 
 	var results []*scraper.Result
-	results = s.scraper.ScrapingProducts(s.jobs...)
+	results = s.scraper.Scraping(s.jobs...)
 
 	for _, result := range results {
 		if result.Err != nil && result.Err != scraper.PRODUCT_NOT_FOUND {
