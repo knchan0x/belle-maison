@@ -39,7 +39,7 @@ COPY --from=builder \
 
 # copy html page, js and css to project/page
 COPY --from=builder \ 
-        /go/Github/belle-masion/page/ \ 
+        /go/Github/belle-masion/cmd/web/page/ \ 
         ./page/
 
 # copy dashboard to to project/page
