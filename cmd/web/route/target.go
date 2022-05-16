@@ -3,11 +3,11 @@ package route
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/knchan0x/belle-maison/cmd/web/middleware"
 	"github.com/knchan0x/belle-maison/internal/cache"
 	"github.com/knchan0x/belle-maison/internal/db"
 	"github.com/knchan0x/belle-maison/internal/scraper"
@@ -15,22 +15,13 @@ import (
 )
 
 const (
-	maxInt            = 1<<31 - 1
 	targets_cache_key = "target"
 )
 
 // add target
 func AddTarget(s scraper.Scraper, dataHandler db.Handler) func(*gin.Context) {
 	return func(ctx *gin.Context) {
-		productCode := ctx.Param("productCode")
-
-		colour, colourOK := ctx.GetPostForm("colour")
-		size, sizeOK := ctx.GetPostForm("size")
-		price, priceOK := ctx.GetPostForm("price")
-		if !colourOK || !sizeOK || !priceOK {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "empty target product info"})
-			return
-		}
+		productCode := ctx.GetString(middleware.Validated_ProductCode)
 
 		// get most updated product info
 		var wg sync.WaitGroup
@@ -41,7 +32,7 @@ func AddTarget(s scraper.Scraper, dataHandler db.Handler) func(*gin.Context) {
 			if c, ok := cache.Get("scraper_result_" + productCode); ok {
 				r = c.(*scraper.Result)
 			} else {
-				r = s.ScrapingProduct(productCode)
+				r = s.Scraping(productCode)[0]
 				cache.Add("scraper_result_"+productCode, r, time.Hour)
 			}
 			wg.Done()
@@ -69,20 +60,14 @@ func AddTarget(s scraper.Scraper, dataHandler db.Handler) func(*gin.Context) {
 			}
 		}
 
-		intPrice, err := strconv.Atoi(price)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "invalid target price"})
-			return
-		}
-
 		// create target
 		newTarget := db.Target{
 			ProductCode: productCode,
 			ProductID:   p.ID,
-			TargetPrice: uint(intPrice),
+			TargetPrice: uint(ctx.GetInt(middleware.Validated_TargetPrice)),
 		}
 
-		targetStyle := colour + "-" + size
+		targetStyle := ctx.GetString(middleware.Validated_TargetColour) + "-" + ctx.GetString(middleware.Validated_TargetSize)
 		for i := range p.Styles {
 			if p.Styles[i].Colour+"-"+p.Styles[i].Size == targetStyle {
 				newTarget.StyleID = p.Styles[i].ID
@@ -117,19 +102,9 @@ func AddTarget(s scraper.Scraper, dataHandler db.Handler) func(*gin.Context) {
 // params: page, size
 func GetTargets(dataHandler db.Handler) func(*gin.Context) {
 	return func(ctx *gin.Context) {
-		p := ctx.Query("page")
-		s := ctx.Query("size")
 
-		page, size := 0, maxInt
-		if p != "" || s != "" {
-			page, errPage := strconv.Atoi(p)
-			size, errSize := strconv.Atoi(s)
-
-			if errPage != nil || errSize != nil || page <= 0 || size <= 0 {
-				ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid parameters"})
-				return
-			}
-		}
+		page := ctx.GetInt(middleware.Validated_QueryPage)
+		size := ctx.GetInt(middleware.Validated_QuerySize)
 
 		var targets []db.TargetInfo
 		if t, ok := cache.Get(targets_cache_key); ok {
@@ -156,32 +131,10 @@ func GetTargets(dataHandler db.Handler) func(*gin.Context) {
 func UpdateTarget(dataHandler db.Handler) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 
-		// validate
-		targetId := ctx.Param("targetId")
-		id, err := strconv.ParseUint(targetId, 10, 64)
-		if err != nil {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "invalid target id"})
-			return
-		}
-
-		productId, OK := ctx.GetPostForm("productId")
-		if !OK {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "product id missing"})
-			return
-		}
-
-		pid, err := strconv.ParseUint(productId, 10, 64)
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid product id"})
-			return
-		}
-
-		colour, colourOK := ctx.GetPostForm("colour")
-		size, sizeOK := ctx.GetPostForm("size")
-		if !colourOK || !sizeOK {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "empty target info"})
-			return
-		}
+		id := ctx.GetInt(middleware.Validated_TargetId)
+		pid := ctx.GetInt(middleware.Validated_ProductId)
+		colour := ctx.GetString(middleware.Validated_TargetColour)
+		size := ctx.GetString(middleware.Validated_TargetSize)
 
 		// build and check target
 		var wg sync.WaitGroup
@@ -204,17 +157,17 @@ func UpdateTarget(dataHandler db.Handler) func(*gin.Context) {
 		wg.Wait()
 
 		if errTarget != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+			if errors.Is(errTarget, gorm.ErrRecordNotFound) {
 				ctx.JSON(http.StatusBadRequest, gin.H{"error": "target not found"})
 				return
 			} else {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				ctx.JSON(http.StatusInternalServerError, gin.H{"error": errTarget.Error()})
 				return
 			}
 		}
 
 		if errStyles != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": errStyles.Error()})
 			return
 		}
 
@@ -237,11 +190,6 @@ func UpdateTarget(dataHandler db.Handler) func(*gin.Context) {
 
 		// save
 		dataHandler.UpdateTarget(target)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
 		cache.Delete(targets_cache_key) // delete cache
 		ctx.Status(http.StatusNoContent)
 	}
@@ -249,13 +197,8 @@ func UpdateTarget(dataHandler db.Handler) func(*gin.Context) {
 
 func DeleteTarget(dataHandler db.Handler) func(*gin.Context) {
 	return func(ctx *gin.Context) {
-		targetId := ctx.Param("targetId")
-		id, err := strconv.ParseUint(targetId, 10, 64)
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid target id"})
-			return
-		}
 
+		id := ctx.GetInt(middleware.Validated_TargetId)
 		if err := dataHandler.DeleteTargetById(uint(id)); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				ctx.JSON(http.StatusNotFound, gin.H{"error": "target not found"})

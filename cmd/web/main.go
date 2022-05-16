@@ -58,7 +58,7 @@ func main() {
 	}
 
 	// config email service
-	email.ConfigEmailService(&email.EmailSetting{
+	email.ConfigService(&email.EmailSetting{
 		ServiceProvider: config.GetString("email.provider"),
 		Host:            config.GetString("email.smpt.host"),
 		Port:            config.GetInt("email.smpt.port"),
@@ -67,7 +67,7 @@ func main() {
 		Recipients:      config.GetStringSlice("email.recipients"),
 	})
 
-	if err := email.TestEmailService(config.GetString("email.sender.username")); err != nil {
+	if err := email.Test(config.GetString("email.sender.username")); err != nil {
 		log.Panicf("failed to connect email service: %v", err)
 	}
 
@@ -117,11 +117,35 @@ func main() {
 	root.POST(urlPrefix_login, route.Login(urlPath_dashboard))
 
 	api := root.Group(urlPrefix_api, middleware.SimpleAuth(middleware.AuthMode_Unauthorized))
-	api.GET("/product/:productCode", middleware.Validate(middleware.ProductCode), route.GetProduct(scraper))             // get product info
-	api.POST("/target/:productCode", middleware.Validate(middleware.ProductCode), route.AddTarget(scraper, dataHandler)) // POST content: colour, size
-	api.DELETE("/target/:targetId", route.DeleteTarget(dataHandler))
-	api.PATCH("/target/:targetId", route.UpdateTarget(dataHandler))
-	api.GET("/targets", route.GetTargets(dataHandler)) // get all products under tracing
+
+	// get product info
+	api.GET("/product/:productCode",
+		middleware.Validate(middleware.ProductCode),
+		route.GetProduct(scraper))
+
+	// POST content: colour, size
+	api.POST("/target/:productCode",
+		middleware.Validate(middleware.ProductCode),
+		middleware.Validate(middleware.TargetColour),
+		middleware.Validate(middleware.TargetSize),
+		middleware.Validate(middleware.TargetPrice),
+		route.AddTarget(scraper, dataHandler))
+
+	api.DELETE("/target/:targetId",
+		middleware.Validate(middleware.TargetId),
+		route.DeleteTarget(dataHandler))
+
+	api.PATCH("/target/:targetId",
+		middleware.Validate(middleware.TargetId),
+		middleware.Validate(middleware.ProductId),
+		middleware.Validate(middleware.TargetColour),
+		middleware.Validate(middleware.TargetSize),
+		route.UpdateTarget(dataHandler))
+
+	// get all products under tracing
+	api.GET("/targets",
+		middleware.Validate(middleware.QueryPageSize),
+		route.GetTargets(dataHandler))
 
 	dashboard := root.Group(urlPrefix_dashboard, middleware.SimpleAuth(middleware.AuthMode_Redirect, urlPath_login))
 	dashboard.StaticFile("/", fileBasePath+"/index.html")

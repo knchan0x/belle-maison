@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	// default
 	adminId = "admin"
 	adminPw = "admin"
 )
@@ -33,12 +34,12 @@ const (
 	tokenKey = "token"
 )
 
-// TODO: sessionDB = new cache
+var sessionDB = cache.New("InMemory")
 
 // VerifyToken check is token provided exist in cache
 // TODO: return user info
 func VerifyToken(token string) bool {
-	if t, ok := cache.Get(tokenKey); !ok || token != t.(string) {
+	if t, ok := sessionDB.Get(tokenKey); !ok || token != t.(string) {
 		return false
 	}
 	return true
@@ -54,7 +55,7 @@ func VerifyUser(username, password string) (string, bool) {
 	md5.Write([]byte(time.Now().Format("2006-01-02 15:04:05") + salt))
 	token := hex.EncodeToString(md5.Sum(nil))
 
-	cache.Add(tokenKey, token, time.Hour)
+	sessionDB.Add(tokenKey, token, time.Hour)
 	return token, true
 }
 

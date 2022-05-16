@@ -5,21 +5,26 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/knchan0x/belle-maison/cmd/web/middleware"
 	"github.com/knchan0x/belle-maison/internal/cache"
 	"github.com/knchan0x/belle-maison/internal/scraper"
+)
+
+const (
+	cachePrefix = "scraper_result_"
 )
 
 // get product info
 func GetProduct(s scraper.Scraper) func(*gin.Context) {
 
 	return func(ctx *gin.Context) {
-		productCode := ctx.Param("productCode")
+		productCode := ctx.GetString(middleware.Validated_ProductCode)
 		var r *scraper.Result
-		if c, ok := cache.Get("scraper_result_" + productCode); ok {
+		if c, ok := cache.Get(cachePrefix + productCode); ok {
 			r = c.(*scraper.Result)
 		} else {
-			r = s.ScrapingProduct(productCode)
-			cache.Add("scraper_result_"+productCode, r, time.Hour)
+			r = s.Scraping(productCode)[0]
+			cache.Add(cachePrefix+productCode, r, time.Hour)
 		}
 
 		if r.Err != nil {
