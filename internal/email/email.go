@@ -23,12 +23,12 @@ var (
 
 var e *EmailSetting
 
-func ConfigEmailService(settings *EmailSetting) {
+func ConfigService(settings *EmailSetting) {
 	e = settings
 }
 
-// TestEmailService send a test message to email address provided
-func TestEmailService(email string) error {
+// Test send a test message to email address provided
+func Test(email string) error {
 	temp := e.Recipients
 	e.Recipients = []string{email}
 	err := SendEmail("Testing", "This is a testing message.")
