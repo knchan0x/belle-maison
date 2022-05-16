@@ -42,8 +42,7 @@ type Style struct {
 
 // Scraper
 type Scraper interface {
-	ScrapingProduct(productCode string) *Result
-	ScrapingProducts(productCodes ...string) []*Result
+	Scraping(productCodes ...string) []*Result
 }
 
 // scraper implements Scraper interface
@@ -87,7 +86,7 @@ type response struct {
 }
 
 // ScrapingProducts fetches and parses multiple products from the site
-func (c *scraper) ScrapingProducts(productCodes ...string) []*Result {
+func (c *scraper) Scraping(productCodes ...string) []*Result {
 	size := len(productCodes)
 
 	if size <= 0 {
@@ -141,31 +140,6 @@ func (c *scraper) ScrapingProducts(productCodes ...string) []*Result {
 	}
 
 	return results
-}
-
-// ScrapingProduct fetches and parses product from the site
-func (c *scraper) ScrapingProduct(productCode string) *Result {
-	data, err := fetch(c.httpClient, baseURL+productCode)
-	if err != nil {
-		return &Result{
-			ProductCode: productCode,
-			Product:     nil,
-			Err:         err,
-		}
-	}
-	newProduct, err := parseHTML(data)
-	if err != nil {
-		return &Result{
-			ProductCode: productCode,
-			Product:     nil,
-			Err:         err,
-		}
-	}
-	return &Result{
-		ProductCode: productCode,
-		Product:     newProduct,
-		Err:         nil,
-	}
 }
 
 // fetch fetches web page from the site
