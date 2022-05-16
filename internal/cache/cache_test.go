@@ -2,13 +2,14 @@ package cache
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 )
 
 var key, val = "test", "yes! test"
 
 func Test_add(t *testing.T) {
-	Add(key, val, NEVER_EXPIRED)
+	Add(key, val, 0)
 }
 
 func Test_get(t *testing.T) {
@@ -33,17 +34,23 @@ func Test_delete(t *testing.T) {
 }
 
 func Test_add_MultiRoutine(t *testing.T) {
+	wg := sync.WaitGroup{}
 	for i := 0; i < 10; i++ {
+		wg.Add(1)
 		go func(i int) {
-			Add(fmt.Sprintf("%s - %d", key, i), fmt.Sprintf("%s - %d", val, i), NEVER_EXPIRED)
+			Add(fmt.Sprintf("%s - %d", key, i), fmt.Sprintf("%s - %d", val, i), 0)
+			wg.Done()
 		}(i)
 	}
+	wg.Wait()
 }
 
 func Test_get_MultiRoutine(t *testing.T) {
 	Test_add_MultiRoutine(t)
 
+	wg := sync.WaitGroup{}
 	for i := 0; i < 10; i++ {
+		wg.Add(1)
 		go func(i int) {
 			got, ok := Get(fmt.Sprintf("%s - %d", key, i))
 			if !ok {
@@ -52,21 +59,34 @@ func Test_get_MultiRoutine(t *testing.T) {
 			if got.(string) != fmt.Sprintf("%s - %d", val, i) {
 				t.Errorf("got %q, wanted %q", got, fmt.Sprintf("%s - %d", val, i))
 			}
+			wg.Done()
 		}(i)
 	}
+	wg.Wait()
 }
 
 func Test_delete_MultiRoutine(t *testing.T) {
 	Test_add_MultiRoutine(t)
 	Test_get_MultiRoutine(t)
 
+	wg := sync.WaitGroup{}
 	for i := 0; i < 10; i++ {
+		wg.Add(1)
 		go func(i int) {
 			Delete(fmt.Sprintf("%s - %d", key, i))
 			got, ok := Get(fmt.Sprintf("%s - %d", key, i))
 			if got != nil || ok {
 				t.Errorf("key %s has not deleted", fmt.Sprintf("%s - %d", key, i))
 			}
+			wg.Done()
 		}(i)
+	}
+	wg.Wait()
+}
+
+func TestNew(t *testing.T) {
+	c := New("InMemory")
+	if c == nil {
+		t.Error()
 	}
 }
