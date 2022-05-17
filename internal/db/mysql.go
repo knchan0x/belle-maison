@@ -5,6 +5,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/knchan0x/belle-maison/internal/db/model/product"
+	"github.com/knchan0x/belle-maison/internal/db/model/target"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -52,16 +54,16 @@ func NewGORMClient(settings *DbSettings) (*gorm.DB, error) {
 // Auto migrate following schemas:
 // Product, Style, Price, Target
 func Migrate(dbClient *gorm.DB) {
-	if err := dbClient.AutoMigrate(&Product{}); err != nil {
+	if err := dbClient.AutoMigrate(&product.Product{}); err != nil {
 		log.Panicf("failed to migrate Product: %v", err)
 	}
-	if err := dbClient.AutoMigrate(&Style{}); err != nil {
+	if err := dbClient.AutoMigrate(&product.Style{}); err != nil {
 		log.Panicf("failed to migrate Style: %v", err)
 	}
-	if err := dbClient.AutoMigrate(&Price{}); err != nil {
+	if err := dbClient.AutoMigrate(&product.Price{}); err != nil {
 		log.Panicf("failed to migrate Price: %v", err)
 	}
-	if err := dbClient.AutoMigrate(&Target{}); err != nil {
+	if err := dbClient.AutoMigrate(&target.Target{}); err != nil {
 		log.Panicf("failed to migrate Target: %v", err)
 	}
 }

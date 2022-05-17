@@ -6,31 +6,33 @@ import (
 	"time"
 
 	"github.com/go-co-op/gocron"
-	"github.com/knchan0x/belle-maison/internal/db"
+	"github.com/knchan0x/belle-maison/internal/db/model/product"
+	"github.com/knchan0x/belle-maison/internal/db/model/target"
 	"github.com/knchan0x/belle-maison/internal/email"
 	"github.com/knchan0x/belle-maison/internal/scraper"
+	"gorm.io/gorm"
 )
 
 // scheduler runs jobs according to pre-defined schedule.
 // It is a wrapper of *gocron.Scheduler.
 type scheduler struct {
 	*gocron.Scheduler
-	scraper     scraper.Scraper
-	dataHandler db.Handler
-	jobs        []string // tasks pending to perform
+	scraper  scraper.Scraper
+	dbClient *gorm.DB
+	jobs     []string // tasks pending to perform
 }
 
 // NewScheduler returns new scheduler
-func NewScheduler(dataHandler db.Handler) *scheduler {
+func NewScheduler(dbClient *gorm.DB) *scheduler {
 	c, err := scraper.NewScraper()
 	if err != nil {
 		log.Fatalf("failed to initialize scraper: %v", err)
 	}
 
 	s := &scheduler{
-		scraper:     c,
-		dataHandler: dataHandler,
-		jobs:        []string{},
+		scraper:  c,
+		dbClient: dbClient,
+		jobs:     []string{},
 	}
 	s.Scheduler = gocron.NewScheduler(time.UTC)
 	return s
@@ -50,14 +52,23 @@ func (s *scheduler) StartScraping() {
 	for _, result := range results {
 		if result.Err != nil && result.Err != scraper.PRODUCT_NOT_FOUND {
 			s.jobs = append(s.jobs, result.ProductCode)
-		} else {
-			err := s.dataHandler.UpdateProduct(result)
-			if err != nil && result.Err != db.EMPTY_PRODUCT {
+			continue
+		}
+
+		p, err := product.GetProductByCode(s.dbClient, result.ProductCode)
+		if err != nil && err != gorm.ErrRecordNotFound {
+			s.jobs = append(s.jobs, result.ProductCode)
+			continue
+		}
+		if err == gorm.ErrRecordNotFound {
+			if _, err := product.New(s.dbClient, result); err != nil {
 				s.jobs = append(s.jobs, result.ProductCode)
+				continue
 			}
-			if result.Err == db.EMPTY_PRODUCT {
-				log.Println(db.EMPTY_PRODUCT)
-			}
+		}
+
+		if err := p.Update(result); err != nil {
+			s.jobs = append(s.jobs, result.ProductCode)
 		}
 	}
 	log.Println("done")
@@ -65,7 +76,7 @@ func (s *scheduler) StartScraping() {
 
 func (s *scheduler) GenerateDailyReport() {
 	log.Println("generating daily report...")
-	targets := s.dataHandler.GetTargets()
+	targets := target.GetAll(s.dbClient)
 	emailMsg := ""
 	for _, target := range targets {
 		// meet target
@@ -98,6 +109,6 @@ func (s *scheduler) cleanJobs() {
 }
 
 func (s *scheduler) assignJobs() {
-	targets := s.dataHandler.GetTargetList()
+	targets := target.GetList(s.dbClient)
 	s.jobs = append(s.jobs, targets...)
 }

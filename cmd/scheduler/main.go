@@ -47,11 +47,8 @@ func main() {
 	// migrate schemas
 	db.Migrate(dbClient)
 
-	// set data handler
-	dataHandler := db.GetHandler(dbClient)
-
 	// set schedule
-	s := NewScheduler(dataHandler)
+	s := NewScheduler(dbClient)
 	if _, err := s.Every(1).Day().At("00:00").Tag("schedule-tasks").Do(s.assignJobs); err != nil {
 		log.Printf("schedule-tasks: %v", err)
 	}
