@@ -39,13 +39,13 @@ COPY --from=builder \
 
 # copy html page, js and css to project/page
 COPY --from=builder \ 
-        /go/Github/belle-masion/cmd/web/page/ \ 
-        ./page/
+        /go/Github/belle-masion/cmd/web/static/ \ 
+        ./static/
 
 # copy dashboard to to project/page
 COPY --from=builder \ 
         /go/Github/belle-masion/dashboard/dist/ \ 
-        ./page/
+        ./static/
 
 # expose port
 EXPOSE 80
