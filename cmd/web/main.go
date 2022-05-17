@@ -9,6 +9,7 @@ import (
 	"github.com/knchan0x/belle-maison/cmd/web/auth"
 	"github.com/knchan0x/belle-maison/cmd/web/middleware"
 	"github.com/knchan0x/belle-maison/cmd/web/route"
+	"github.com/knchan0x/belle-maison/cmd/web/user"
 	"github.com/knchan0x/belle-maison/internal/config"
 	"github.com/knchan0x/belle-maison/internal/db"
 	"github.com/knchan0x/belle-maison/internal/email"
@@ -19,8 +20,8 @@ const (
 	cookie_name = "_cookie_"
 	addr        = ":80"
 
-	filePath_root_docker    = "./page"
-	filePath_root_localhost = "../../page"
+	filePath_root_docker    = "./static"
+	filePath_root_localhost = "../../static"
 
 	urlPath_root        = "/bellemasion"
 	urlPrefix_dashboard = "/dashboard"
@@ -74,15 +75,14 @@ func main() {
 	// migrate schemas
 	db.Migrate(dbClient)
 
-	// set data handler
-	dataHandler := db.GetHandler(dbClient)
+	// set user
+	user.SetAdmin(config.GetString("dashboard.username"), config.GetString("dashboard.password"))
 
 	// set auth
-	auth.SetAdmin(config.GetString("dashboard.username"), config.GetString("dashboard.password"))
 	auth.SetCookieName(cookie_name)
 
 	// activate auth middleware
-	middleware.ActivateSimpleAuth(!config.GetBool("debug.mode"))
+	middleware.ActivateRolePermit(!config.GetBool("debug.mode"))
 
 	// configure scraper
 	scraper, err := scraper.NewScraper()
@@ -99,7 +99,7 @@ func main() {
 		web.Use(middleware.AllowCrossOrigin("http://localhost:3000"))
 	}
 
-	// add root for easier configuration root path
+	// add root for easier configurate root path
 	root := web.Group(urlPath_root)
 
 	// redirect / to /dashboard
@@ -113,10 +113,17 @@ func main() {
 	} else {
 		fileBasePath = filePath_root_localhost
 	}
-	root.StaticFile(urlPrefix_login, fileBasePath+"/login.html")
-	root.POST(urlPrefix_login, route.Login(urlPath_dashboard))
+	root.Static(urlPrefix_asset, fileBasePath+"/assets")
 
-	api := root.Group(urlPrefix_api, middleware.SimpleAuth(middleware.AuthMode_Unauthorized))
+	root.StaticFile(urlPrefix_login, fileBasePath+"/login.html") // GET
+	root.POST(urlPrefix_login, route.Login(urlPath_dashboard))   // POST
+
+	dashboard := root.Group(urlPrefix_dashboard,
+		middleware.AccessControl(middleware.Admin, middleware.AuthMode_Redirect, urlPath_login))
+	dashboard.StaticFile("/", fileBasePath+"/index.html")
+
+	api := root.Group(urlPrefix_api,
+		middleware.AccessControl(middleware.Admin, middleware.AuthMode_Unauthorized))
 
 	// get product info
 	api.GET("/product/:productCode",
@@ -129,28 +136,16 @@ func main() {
 		middleware.Validate(middleware.TargetColour),
 		middleware.Validate(middleware.TargetSize),
 		middleware.Validate(middleware.TargetPrice),
-		route.AddTarget(scraper, dataHandler))
+		route.AddTarget(dbClient, scraper))
 
 	api.DELETE("/target/:targetId",
 		middleware.Validate(middleware.TargetId),
-		route.DeleteTarget(dataHandler))
-
-	api.PATCH("/target/:targetId",
-		middleware.Validate(middleware.TargetId),
-		middleware.Validate(middleware.ProductId),
-		middleware.Validate(middleware.TargetColour),
-		middleware.Validate(middleware.TargetSize),
-		route.UpdateTarget(dataHandler))
+		route.DeleteTarget(dbClient))
 
 	// get all products under tracing
 	api.GET("/targets",
 		middleware.Validate(middleware.QueryPageSize),
-		route.GetTargets(dataHandler))
-
-	dashboard := root.Group(urlPrefix_dashboard, middleware.SimpleAuth(middleware.AuthMode_Redirect, urlPath_login))
-	dashboard.StaticFile("/", fileBasePath+"/index.html")
-
-	root.Static(urlPrefix_asset, fileBasePath+"/assets")
+		route.GetTargets(dbClient))
 
 	log.Printf("Running web server on %s...", addr)
 	if err := web.Run(addr); err != nil {

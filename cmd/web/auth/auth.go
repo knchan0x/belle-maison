@@ -5,19 +5,9 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/knchan0x/belle-maison/cmd/web/user"
 	"github.com/knchan0x/belle-maison/internal/cache"
 )
-
-var (
-	// default
-	adminId = "admin"
-	adminPw = "admin"
-)
-
-func SetAdmin(id, pw string) {
-	adminId = id
-	adminPw = pw
-}
 
 var cookieName = "_cookie_"
 
@@ -30,23 +20,23 @@ func SetCookieName(name string) {
 }
 
 const (
-	salt     = "belle-masion"
-	tokenKey = "token"
+	salt = "belle-masion"
 )
 
 var sessionDB = cache.New("InMemory")
 
 // VerifyToken check is token provided exist in cache
-// TODO: return user info
-func VerifyToken(token string) bool {
-	if t, ok := sessionDB.Get(tokenKey); !ok || token != t.(string) {
-		return false
+func VerifyToken(token string) user.User {
+	u, ok := sessionDB.Get(token)
+	if !ok {
+		return user.User{Username: "Guest", Role: user.Guest}
 	}
-	return true
+	return u.(user.User)
 }
 
 func VerifyUser(username, password string) (string, bool) {
-	if pw, exists := getUserPassword(username); !exists || pw != password {
+	user, pw, exists := user.GetUser(username)
+	if !exists || pw != password {
 		return "", false
 	}
 
@@ -55,13 +45,6 @@ func VerifyUser(username, password string) (string, bool) {
 	md5.Write([]byte(time.Now().Format("2006-01-02 15:04:05") + salt))
 	token := hex.EncodeToString(md5.Sum(nil))
 
-	sessionDB.Add(tokenKey, token, time.Hour)
+	sessionDB.Add(token, &user, time.Hour)
 	return token, true
-}
-
-func getUserPassword(username string) (password string, exists bool) {
-	if username != adminId {
-		return adminPw, true
-	}
-	return "", false
 }
