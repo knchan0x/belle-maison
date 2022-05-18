@@ -19,6 +19,7 @@ type DbSettings struct {
 	User     string
 	Password string
 	Mode     string
+	PoolSize int
 }
 
 var debugMode = false
@@ -41,10 +42,16 @@ func NewGORMClient(settings *DbSettings) (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// set to default if no provided
+	if settings.PoolSize == 0 {
+		settings.PoolSize = 10
+	}
+
 	sqlDB, err := db.DB()
 	if err == nil {
-		sqlDB.SetMaxIdleConns(10)
-		sqlDB.SetMaxOpenConns(20)
+		sqlDB.SetMaxIdleConns(settings.PoolSize / 2)
+		sqlDB.SetMaxOpenConns(settings.PoolSize)
 		sqlDB.SetConnMaxLifetime(time.Hour)
 	}
 
