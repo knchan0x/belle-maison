@@ -40,14 +40,14 @@ func NewScheduler(dbClient *gorm.DB) *scheduler {
 
 // StartScraping activates scraper to preform crawling tasks
 func (s *scheduler) StartScraping() {
-	log.Println("start crawling...")
+	log.Println("start scraping...")
 	if s.jobs == nil || len(s.jobs) <= 0 {
-		log.Println("no job, end crawling")
+		log.Println("no job need to be performed, end scraping")
 		return
 	}
 
-	var results []*scraper.Result
-	results = s.scraper.Scraping(s.jobs...)
+	// fetch
+	results := s.scraper.Scraping(s.jobs...)
 
 	for _, result := range results {
 		if result.Err != nil && result.Err != scraper.PRODUCT_NOT_FOUND {
@@ -63,8 +63,8 @@ func (s *scheduler) StartScraping() {
 		if err == gorm.ErrRecordNotFound {
 			if _, err := product.New(s.dbClient, result); err != nil {
 				s.jobs = append(s.jobs, result.ProductCode)
-				continue
 			}
+			continue
 		}
 
 		if err := p.Update(result); err != nil {
@@ -73,6 +73,10 @@ func (s *scheduler) StartScraping() {
 	}
 	log.Println("done")
 }
+
+const (
+	LowStockThreshold = 9
+)
 
 func (s *scheduler) GenerateDailyReport() {
 	log.Println("generating daily report...")
@@ -87,7 +91,7 @@ func (s *scheduler) GenerateDailyReport() {
 			emailMsg += fmt.Sprintf("%s: target price: %d, current price: %d\n", target.Name, target.TargetPrice, target.Price)
 		}
 		// low stock
-		if target.Price >= target.TargetPrice && target.Stock < 10 {
+		if target.Price >= target.TargetPrice && target.Stock <= LowStockThreshold {
 			if emailMsg == "" {
 				emailMsg += "The following products have not achieved your target price but the stock is low now: \n"
 			}
