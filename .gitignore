@@ -33,3 +33,7 @@ docker-compose.*
 dashboard/node_modules/
 dashboard/cypress/
 dashboard/dist/
+
+# Vue generated static files
+cmd/web/static/index.html
+cmd/web/static/assets/index.*.*
