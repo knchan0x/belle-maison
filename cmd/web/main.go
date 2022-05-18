@@ -1,14 +1,19 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/knchan0x/belle-maison/cmd/web/auth"
+	"github.com/knchan0x/belle-maison/cmd/web/controller"
 	"github.com/knchan0x/belle-maison/cmd/web/middleware"
-	"github.com/knchan0x/belle-maison/cmd/web/route"
 	"github.com/knchan0x/belle-maison/cmd/web/user"
 	"github.com/knchan0x/belle-maison/internal/config"
 	"github.com/knchan0x/belle-maison/internal/db"
@@ -18,10 +23,9 @@ import (
 
 const (
 	cookie_name = "_cookie_"
-	addr        = ":80"
 
 	filePath_root_docker    = "./static"
-	filePath_root_localhost = "../../static"
+	filePath_root_localhost = "./static"
 
 	urlPath_root        = "/bellemasion"
 	urlPrefix_dashboard = "/dashboard"
@@ -44,14 +48,20 @@ func init() {
 
 func main() {
 
+	addr := ":80"
+	if config.GetInt("web.port") != 0 {
+		addr = fmt.Sprintf(":%d", config.GetInt("web.port"))
+	}
+
 	// config db connection
-	db.SetDebugMode(config.GetBool("debug.mode"))
+	db.SetDebugMode(config.GetBool("debug"))
 	dbClient, err := db.NewGORMClient(&db.DbSettings{
 		Host:     config.GetString("mysql.host"),
 		Port:     config.GetString("mysql.port"),
 		DB:       config.GetString("mysql.db"),
 		User:     config.GetString("mysql.user"),
 		Password: config.GetString("mysql.password"),
+		PoolSize: 20,
 	})
 
 	if err != nil {
@@ -76,13 +86,13 @@ func main() {
 	db.Migrate(dbClient)
 
 	// set user
-	user.SetAdmin(config.GetString("dashboard.username"), config.GetString("dashboard.password"))
+	user.SetAdmin(config.GetString("admin.username"), config.GetString("admin.password"))
 
 	// set auth
 	auth.SetCookieName(cookie_name)
 
 	// activate auth middleware
-	middleware.ActivateRolePermit(!config.GetBool("debug.mode"))
+	middleware.ActivateRolePermit(!config.GetBool("debug"))
 
 	// configure scraper
 	scraper, err := scraper.NewScraper()
@@ -95,7 +105,7 @@ func main() {
 
 	// configure gin
 	web := gin.Default()
-	if config.GetBool("debug.mode") {
+	if config.GetBool("debug") {
 		web.Use(middleware.AllowCrossOrigin("http://localhost:3000"))
 	}
 
@@ -115,8 +125,8 @@ func main() {
 	}
 	root.Static(urlPrefix_asset, fileBasePath+"/assets")
 
-	root.StaticFile(urlPrefix_login, fileBasePath+"/login.html") // GET
-	root.POST(urlPrefix_login, route.Login(urlPath_dashboard))   // POST
+	root.StaticFile(urlPrefix_login, fileBasePath+"/login.html")    // GET
+	root.POST(urlPrefix_login, controller.Login(urlPath_dashboard)) // POST
 
 	dashboard := root.Group(urlPrefix_dashboard,
 		middleware.AccessControl(middleware.Admin, middleware.AuthMode_Redirect, urlPath_login))
@@ -128,7 +138,7 @@ func main() {
 	// get product info
 	api.GET("/product/:productCode",
 		middleware.Validate(middleware.ProductCode),
-		route.GetProduct(scraper))
+		controller.GetProduct(scraper))
 
 	// POST content: colour, size
 	api.POST("/target/:productCode",
@@ -136,19 +146,55 @@ func main() {
 		middleware.Validate(middleware.TargetColour),
 		middleware.Validate(middleware.TargetSize),
 		middleware.Validate(middleware.TargetPrice),
-		route.AddTarget(dbClient, scraper))
+		controller.AddTarget(dbClient, scraper))
 
 	api.DELETE("/target/:targetId",
 		middleware.Validate(middleware.TargetId),
-		route.DeleteTarget(dbClient))
+		controller.DeleteTarget(dbClient))
 
 	// get all products under tracing
 	api.GET("/targets",
 		middleware.Validate(middleware.QueryPageSize),
-		route.GetTargets(dbClient))
+		controller.GetTargets(dbClient))
 
-	log.Printf("Running web server on %s...", addr)
-	if err := web.Run(addr); err != nil {
-		log.Fatalf("Unable to start API Server: %v", err)
+	// set up server
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: web,
 	}
+
+	// async, prevent to block the current thread
+	// that will handle graceful shutdown
+	go func() {
+		log.Printf("Running server on %s...", addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Unable to start server: %v", err)
+		}
+	}()
+
+	// wait for interrupt signal
+	quit := make(chan os.Signal, 1)
+
+	// kill (no param) default send syscall.SIGTERM
+	// kill -2 is syscall.SIGINT
+	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	<-quit
+	log.Println("Shutting down server...")
+
+	// context is used to inform the server it has 5 seconds to finish
+	// the request it is currently handling
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown: ", err)
+	}
+
+	// close db connection before exit
+	if sqlDB, err := dbClient.DB(); err == nil {
+		sqlDB.Close()
+	}
+
+	log.Println("Server exiting")
 }

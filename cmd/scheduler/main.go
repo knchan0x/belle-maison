@@ -2,6 +2,9 @@ package main
 
 import (
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/knchan0x/belle-maison/internal/config"
 	"github.com/knchan0x/belle-maison/internal/db"
@@ -18,16 +21,17 @@ func init() {
 func main() {
 
 	// config db connection
-	db.SetDebugMode(config.GetBool("debug.mode"))
+	db.SetDebugMode(config.GetBool("debug"))
 	dbClient, err := db.NewGORMClient(&db.DbSettings{
 		Host:     config.GetString("mysql.host"),
 		Port:     config.GetString("mysql.port"),
 		DB:       config.GetString("mysql.db"),
 		User:     config.GetString("mysql.user"),
 		Password: config.GetString("mysql.password"),
+		PoolSize: 2,
 	})
 	if err != nil {
-		panic("failed to connect database")
+		log.Panicln("failed to connect database")
 	}
 
 	// config email service
@@ -39,7 +43,6 @@ func main() {
 		Password:        config.GetString("email.sender.password"),
 		Recipients:      config.GetStringSlice("email.recipients"),
 	})
-
 	if err := email.Test(config.GetString("email.sender.username")); err != nil {
 		log.Panicf("failed to connect email service: %v", err)
 	}
@@ -62,7 +65,25 @@ func main() {
 		log.Printf("scraping: %v", err)
 	}
 
-	// start scheduler
+	// start scheduler / scraper
 	log.Println("scraper starts working...")
-	s.StartBlocking()
+	s.StartAsync()
+
+	// wait for interrupt signal
+	quit := make(chan os.Signal, 1)
+
+	// kill (no param) default send syscall.SIGTERM
+	// kill -2 is syscall.SIGINT
+	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	<-quit
+	log.Println("Shutting down scraper...")
+
+	// close db connection before exit
+	if sqlDB, err := dbClient.DB(); err == nil {
+		sqlDB.Close()
+	}
+
+	log.Println("Scraper exits")
 }
