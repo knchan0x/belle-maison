@@ -1,5 +1,11 @@
-debug:
-  mode: false
+debug: false
+
+web:
+  port: 80
+
+dashboard:
+  username: "admin"
+  password: "your_pw"
 
 email:
   provider: outlook
@@ -18,7 +24,3 @@ mysql:
   db: "your-db-name"
   user: "your-username"
   password: "your-pw"
-
-dashboard:
-  username: "admin"
-  password: "your_pw"
