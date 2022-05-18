@@ -20,7 +20,7 @@ const (
 var patterns map[string]*regexp.Regexp
 
 // TODO: refactor, pattern class?
-func SetPatterns() {
+func init() {
 	productIdPattern, err := regexp.Compile(`\d{7}`)
 	if err != nil {
 		log.Fatal("invalid regexp: productIdPattern")
