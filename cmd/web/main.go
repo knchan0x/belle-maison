@@ -196,5 +196,5 @@ func main() {
 		sqlDB.Close()
 	}
 
-	log.Println("Server exiting")
+	log.Println("Server existed")
 }
