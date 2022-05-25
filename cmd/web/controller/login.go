@@ -17,6 +17,7 @@ func Login(jumpTo string) func(*gin.Context) {
 
 		if !ok {
 			ctx.String(http.StatusUnauthorized, "username and/or password incorrect.")
+			return
 		}
 
 		ctx.SetCookie(auth.GetCookieName(), token, 60*60, "/", "", false, true) // secure flag causes only https allowed to set cookie
