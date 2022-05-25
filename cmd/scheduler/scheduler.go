@@ -67,7 +67,7 @@ func (s *scheduler) StartScraping() {
 			continue
 		}
 
-		if err := p.Update(result); err != nil {
+		if err := p.Update(s.dbClient, result); err != nil {
 			s.jobs = append(s.jobs, result.ProductCode)
 		}
 	}

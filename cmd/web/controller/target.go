@@ -61,7 +61,10 @@ func AddTarget(dbClient *gorm.DB, s scraper.Scraper) func(*gin.Context) {
 			}
 		}
 
-		targetStyle, err := p.Style(ctx.GetString(middleware.Validated_TargetColour), ctx.GetString(middleware.Validated_TargetSize))
+		targetStyle, err := p.Style(
+			dbClient,
+			ctx.GetString(middleware.Validated_TargetColour),
+			ctx.GetString(middleware.Validated_TargetSize))
 
 		// style not found
 		if err != nil {
@@ -69,7 +72,12 @@ func AddTarget(dbClient *gorm.DB, s scraper.Scraper) func(*gin.Context) {
 			return
 		}
 
-		if _, err := target.New(dbClient, productCode, p.ID, targetStyle.ID, uint(ctx.GetInt(middleware.Validated_TargetPrice))); err != nil {
+		if _, err := target.New(
+			dbClient,
+			productCode,
+			p.ID,
+			targetStyle.ID,
+			uint(ctx.GetInt(middleware.Validated_TargetPrice))); err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server rrror"})
 			return
 		}
@@ -124,7 +132,7 @@ func DeleteTarget(dbClient *gorm.DB) func(*gin.Context) {
 			}
 		}
 
-		t.Delete()
+		t.Delete(dbClient)
 		cache.Delete(targets_cache_key) // force update target list
 		ctx.Status(http.StatusNoContent)
 	}

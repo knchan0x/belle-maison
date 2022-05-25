@@ -12,7 +12,6 @@ type Product struct {
 	Name        string
 	ProductCode string
 	Styles      []Style
-	dbClient    *gorm.DB `gorm:"-:all"`
 }
 
 type Style struct {
@@ -23,7 +22,6 @@ type Style struct {
 	Size           string
 	ImageUrl       string
 	PriceHistories []Price
-	dbClient       *gorm.DB `gorm:"-:all"`
 }
 
 type Price struct {
@@ -61,10 +59,9 @@ func New(dbClient *gorm.DB, result *scraper.Result) (*Product, error) {
 		Name:        result.Product.Name,
 		ProductCode: result.ProductCode,
 		Styles:      styles,
-		dbClient:    dbClient,
 	}
 
-	err := p.Save()
+	err := p.Save(dbClient)
 	if err != nil {
 		return nil, err
 	}
@@ -94,9 +91,9 @@ func GetProductById(dbClient *gorm.DB, pid uint) (*Product, error) {
 
 // Get styles
 // key = colour-size
-func (p *Product) AllStyles() (map[string]*Style, error) {
+func (p *Product) AllStyles(dbClient *gorm.DB) (map[string]*Style, error) {
 	styles := []Style{}
-	r := p.dbClient.Where("product_id = ?", p.ID).Find(&styles)
+	r := dbClient.Where("product_id = ?", p.ID).Find(&styles)
 
 	if r.Error == nil && r.RowsAffected > 0 {
 		// create mapping
@@ -110,18 +107,18 @@ func (p *Product) AllStyles() (map[string]*Style, error) {
 	return nil, r.Error
 }
 
-func (p *Product) Style(colour, size string) (*Style, error) {
+func (p *Product) Style(dbClient *gorm.DB, colour, size string) (*Style, error) {
 	s := Style{}
-	r := p.dbClient.Where("product_id = ? AND colour = ? AND size = ?", p.ID, colour, size).Limit(1).Find(&s)
+	r := dbClient.Where("product_id = ? AND colour = ? AND size = ?", p.ID, colour, size).Limit(1).Find(&s)
 	if r.Error == nil && r.RowsAffected == 0 {
 		return nil, gorm.ErrRecordNotFound
 	}
 	return &s, r.Error
 }
 
-func (s *Style) PriceHistory() ([]Price, error) {
+func (s *Style) PriceHistory(dbClient *gorm.DB) ([]Price, error) {
 	prices := []Price{}
-	r := s.dbClient.Where("style_id = ?", s.ID).Find(&prices)
+	r := dbClient.Where("style_id = ?", s.ID).Find(&prices)
 
 	if r.Error == nil && r.RowsAffected > 0 {
 		return prices, nil
@@ -129,13 +126,13 @@ func (s *Style) PriceHistory() ([]Price, error) {
 	return nil, r.Error
 }
 
-func (p *Product) Delete() error {
-	styles, err := p.AllStyles()
+func (p *Product) Delete(dbClient *gorm.DB) error {
+	styles, err := p.AllStyles(dbClient)
 	if err != nil {
 		return err
 	}
 
-	return p.dbClient.Transaction(func(tx *gorm.DB) error {
+	return dbClient.Transaction(func(tx *gorm.DB) error {
 		for _, style := range styles {
 
 			if err := tx.Delete(&Price{}, "style_id = ?", style.ID).Error; err != nil {
@@ -155,14 +152,14 @@ func (p *Product) Delete() error {
 	})
 }
 
-func (p *Product) Update(result *scraper.Result) error {
+func (p *Product) Update(dbClient *gorm.DB, result *scraper.Result) error {
 
 	// product has been removed, set price == 0 and stock == 0 for all styles
 	if result.Err == scraper.PRODUCT_NOT_FOUND {
 		for idx := range p.Styles {
 			p.Styles[idx].PriceHistories = append(p.Styles[idx].PriceHistories, Price{Price: 0, Stock: 0})
 		}
-		p.dbClient.Save(p)
+		dbClient.Save(p)
 		return nil
 	}
 
@@ -172,7 +169,7 @@ func (p *Product) Update(result *scraper.Result) error {
 	}
 
 	// get all styles of current product
-	storedStyles, err := p.AllStyles()
+	storedStyles, err := p.AllStyles(dbClient)
 	if err != nil {
 		return err
 	}
@@ -206,13 +203,13 @@ func (p *Product) Update(result *scraper.Result) error {
 		}
 	}
 
-	p.dbClient.Create(&batchStyle)
-	p.dbClient.Create(&batchPrice)
+	dbClient.Create(&batchStyle)
+	dbClient.Create(&batchPrice)
 	return nil
 }
 
-func (p *Product) Save() error {
-	r := p.dbClient.Create(p)
+func (p *Product) Save(dbClient *gorm.DB) error {
+	r := dbClient.Create(p)
 	if r.Error != nil {
 		return r.Error
 	}

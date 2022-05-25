@@ -13,7 +13,6 @@ type Target struct {
 	ProductID   uint
 	StyleID     uint
 	TargetPrice uint
-	dbClient    *gorm.DB `gorm:"-:all"`
 }
 
 type TargetInfo struct {
@@ -41,11 +40,10 @@ func New(dbClient *gorm.DB, productCode string, productID uint, styleId uint, pr
 		ProductID:   productID,
 		StyleID:     styleId,
 		TargetPrice: price,
-		dbClient:    dbClient,
 	}
 
 	// save target
-	err := newTarget.Save()
+	err := newTarget.Save(dbClient)
 	if err != nil {
 		return nil, err
 	}
@@ -134,8 +132,8 @@ func GetById(dbClient *gorm.DB, id uint) (*Target, error) {
 }
 
 // Save save instance to db
-func (t *Target) Save() error {
-	r := t.dbClient.Create(t)
+func (t *Target) Save(dbClient *gorm.DB) error {
+	r := dbClient.Create(t)
 	if r.Error != nil {
 		return r.Error
 	}
@@ -144,11 +142,11 @@ func (t *Target) Save() error {
 }
 
 // Update updates changes to db
-func (t *Target) Update() {
-	t.dbClient.Save(t)
+func (t *Target) Update(dbClient *gorm.DB) {
+	dbClient.Save(t)
 }
 
 // Delete deletes record from db
-func (t *Target) Delete() {
-	t.dbClient.Delete(t)
+func (t *Target) Delete(dbClient *gorm.DB) {
+	dbClient.Delete(t)
 }
