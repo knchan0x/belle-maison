@@ -109,7 +109,7 @@ func main() {
 		web.Use(middleware.AllowCrossOrigin("http://localhost:3000"))
 	}
 
-	// add root for easier configurate root path
+	// add root for easier configure root path
 	root := web.Group(urlPath_root)
 
 	// redirect / to /dashboard
