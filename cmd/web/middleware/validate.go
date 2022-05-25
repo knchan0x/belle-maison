@@ -107,7 +107,7 @@ func validateProductCode() func(*gin.Context) {
 func validateTargetId() func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		targetId := ctx.Param("targetId")
-		id, err := strconv.ParseUint(targetId, 10, 64)
+		id, err := strconv.Atoi(targetId)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "invalid target id"})
 			return

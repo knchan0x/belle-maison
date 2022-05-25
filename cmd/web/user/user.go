@@ -24,7 +24,7 @@ const (
 )
 
 func GetUser(username string) (user *User, pw string, exists bool) {
-	if username != adminId {
+	if username == adminId {
 		return &User{Username: adminId, Role: Admin}, adminPw, true
 	}
 	return nil, "", false

@@ -45,6 +45,6 @@ func VerifyUser(username, password string) (string, bool) {
 	md5.Write([]byte(time.Now().Format("2006-01-02 15:04:05") + salt))
 	token := hex.EncodeToString(md5.Sum(nil))
 
-	sessionDB.Add(token, &user, time.Hour)
+	sessionDB.Add(token, *user, time.Hour)
 	return token, true
 }
