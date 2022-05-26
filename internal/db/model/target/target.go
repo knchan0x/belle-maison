@@ -86,7 +86,7 @@ func GetAll(dbClient *gorm.DB) (results []TargetInfo) {
 // Get all targets' product code
 func GetList(dbClient *gorm.DB) []string {
 	t := []Target{}
-	r := dbClient.Select("productCode").Find(&t)
+	r := dbClient.Select("product_code").Find(&t)
 	if r.Error == nil && r.RowsAffected > 0 {
 		return targetToList(t)
 	}
