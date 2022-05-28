@@ -203,8 +203,12 @@ func (p *Product) Update(dbClient *gorm.DB, result *scraper.Result) error {
 		}
 	}
 
-	dbClient.Create(&batchStyle)
-	dbClient.Create(&batchPrice)
+	if len(batchStyle) > 0 {
+		dbClient.Create(&batchStyle)
+	}
+	if len(batchPrice) > 0 {
+		dbClient.Create(&batchPrice)
+	}
 	return nil
 }
 
