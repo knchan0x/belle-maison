@@ -31,7 +31,7 @@ func main() {
 		PoolSize: 2,
 	})
 	if err != nil {
-		log.Panicln("failed to connect database")
+		log.Panicln("Failed to connect database")
 	}
 
 	// config email service
@@ -44,7 +44,7 @@ func main() {
 		Recipients:      config.GetStringSlice("email.recipients"),
 	})
 	if err := email.Test(config.GetString("email.sender.username")); err != nil {
-		log.Panicf("failed to connect email service: %v", err)
+		log.Panicf("Failed to connect email service: %v", err)
 	}
 
 	// migrate schemas
@@ -53,20 +53,20 @@ func main() {
 	// set schedule
 	s := NewScheduler(dbClient)
 	if _, err := s.Every(1).Day().At("00:00").Tag("schedule-tasks").Do(s.assignJobs); err != nil {
-		log.Printf("schedule-tasks: %v", err)
+		log.Printf("Schedule-tasks: %v", err)
 	}
 	if _, err := s.Every(1).Day().At("23:59").Tag("clean-tasks").Do(s.cleanJobs); err != nil {
-		log.Printf("clean-tasks: %v", err)
+		log.Printf("Clean-tasks: %v", err)
 	}
 	if _, err := s.Every(1).Day().At("04:00").Tag("daily-report").Do(s.GenerateDailyReport); err != nil {
-		log.Printf("daily-report: %v", err)
+		log.Printf("Daily-report: %v", err)
 	}
 	if _, err := s.Every(1).Hour().At("00:00").Tag("crawling").Do(s.StartScraping); err != nil {
-		log.Printf("scraping: %v", err)
+		log.Printf("Scraping: %v", err)
 	}
 
 	// start scheduler / scraper
-	log.Println("scraper starts working...")
+	log.Println("Scraper starts working...")
 	s.StartAsync()
 
 	// wait for interrupt signal
@@ -85,5 +85,5 @@ func main() {
 		sqlDB.Close()
 	}
 
-	log.Println("Scraper exits")
+	log.Println("Scraper exited")
 }

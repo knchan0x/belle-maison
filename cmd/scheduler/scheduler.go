@@ -40,9 +40,9 @@ func NewScheduler(dbClient *gorm.DB) *scheduler {
 
 // StartScraping activates scraper to preform crawling tasks
 func (s *scheduler) StartScraping() {
-	log.Println("start scraping...")
+	log.Println("Start scraping...")
 	if s.jobs == nil || len(s.jobs) <= 0 {
-		log.Println("no job need to be performed, end scraping")
+		log.Println("No job need to be performed, end scraping")
 		return
 	}
 
@@ -71,7 +71,7 @@ func (s *scheduler) StartScraping() {
 			s.jobs = append(s.jobs, result.ProductCode)
 		}
 	}
-	log.Println("done")
+	log.Println("Done")
 }
 
 const (
@@ -79,7 +79,7 @@ const (
 )
 
 func (s *scheduler) GenerateDailyReport() {
-	log.Println("generating daily report...")
+	log.Println("Generating daily report...")
 	targets := target.GetAll(s.dbClient)
 	emailMsg := ""
 	for _, target := range targets {
@@ -105,7 +105,7 @@ func (s *scheduler) GenerateDailyReport() {
 		}
 	}
 
-	log.Println("done")
+	log.Println("Done")
 }
 
 func (s *scheduler) cleanJobs() {
