@@ -23,6 +23,7 @@ const (
 	Admin
 )
 
+// TODO: use DB
 func GetUser(username string) (user *User, pw string, exists bool) {
 	if username == adminId {
 		return &User{Username: adminId, Role: Admin}, adminPw, true

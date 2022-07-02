@@ -10,7 +10,6 @@ import (
 // login handler, jump to provided address if user is logged in.
 // return "username and/or password incorrect." if invalid
 // Insecure. Please set SSL.
-// TODO: add validate middleware for username and password pattern
 func Login(jumpTo string) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		token, ok := auth.VerifyUser(ctx.PostForm("username"), ctx.PostForm("password"))

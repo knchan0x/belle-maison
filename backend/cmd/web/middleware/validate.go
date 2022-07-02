@@ -19,7 +19,6 @@ const (
 
 var patterns map[string]*regexp.Regexp
 
-// TODO: refactor, pattern class?
 func init() {
 	productIdPattern, err := regexp.Compile(`\d{7}`)
 	if err != nil {
@@ -63,7 +62,6 @@ const (
 	Validated_QuerySize    = "Validated_QuerySize"
 )
 
-// TODO: comment
 // Validate processes handler after Validations completed
 func Validate(t ValidateType) func(*gin.Context) {
 	switch t {
