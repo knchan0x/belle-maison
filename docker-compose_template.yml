@@ -6,11 +6,11 @@ services:
     image: your-registry/web:your-version
     build:
       context: .
-      dockerfile: ./cmd/web/Dockerfile
+      dockerfile: ./backend/cmd/web/Dockerfile
 
   scheduler:
     platform: linux/amd64
     image: your-registry/scheduler:your-version
     build:
       context: .
-      dockerfile: ./cmd/scheduler/Dockerfile
+      dockerfile: ./backend/cmd/scheduler/Dockerfile
