@@ -20,7 +20,7 @@ COPY .  Github/belle-masion
 WORKDIR Github/belle-masion/cmd/web
 
 # build executable
-RUN go build -o endpoint .
+RUN go build -o web .
 
 ###########################################################
 # stage 2: copy the executable and build the actual image #
@@ -37,7 +37,7 @@ COPY --from=builder \
         /go/Github/belle-masion/config.yaml \ 
         ./
 
-# copy html page, js and css to project/page
+# copy login page's html page, js and css to static folder
 COPY --from=builder \ 
         /go/Github/belle-masion/cmd/web/static/ \ 
         ./static/
@@ -51,4 +51,4 @@ COPY --from=builder \
 EXPOSE 80
 
 # run executable
-CMD ["./endpoint"]
+CMD ["./web"]
