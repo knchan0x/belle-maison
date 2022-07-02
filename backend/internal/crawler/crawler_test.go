@@ -1,4 +1,4 @@
-package scraper
+package crawler
 
 import (
 	"bytes"
@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"reflect"
 	"testing"
 )
 
@@ -21,21 +20,20 @@ func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
 	return &http.Response{}, nil
 }
 
-// TODO: combine with TestNewScraper
-// func TestNewCrawler(t *testing.T) {
-// 	c, err := NewScraper()
-// 	if c == nil || err != nil {
-// 		t.Errorf("initializing crawler failed: %v", err)
-// 	}
-// 	c, err = NewScraper(&http.Client{})
-// 	if c == nil || err != nil {
-// 		t.Errorf("initializing crawler failed: %v", err)
-// 	}
-// 	c, err = NewScraper(&http.Client{}, &http.Client{})
-// 	if c != nil || err != ErrMultipleClient {
-// 		t.Errorf("failed to prevent multiple http clients")
-// 	}
-// }
+func TestNewCrawler(t *testing.T) {
+	c, err := NewCrawler()
+	if c == nil || err != nil {
+		t.Errorf("initializing crawler failed: %v", err)
+	}
+	c, err = NewCrawler(&http.Client{})
+	if c == nil || err != nil {
+		t.Errorf("initializing crawler failed: %v", err)
+	}
+	c, err = NewCrawler(&http.Client{}, &http.Client{})
+	if c != nil || err != ErrMultipleClient {
+		t.Errorf("failed to prevent multiple http clients")
+	}
+}
 
 func TestRetrieveProduct_PageNotFound(t *testing.T) {
 	client := &MockClient{
@@ -46,9 +44,9 @@ func TestRetrieveProduct_PageNotFound(t *testing.T) {
 			}, nil
 		},
 	}
-	c, err := NewScraper(client)
+	c, err := NewCrawler(client)
 	if c == nil || err != nil {
-		t.Errorf("initializing scraper failed: %v", err)
+		t.Errorf("initializing crawler failed: %v", err)
 	}
 
 	r := c.Scraping("1000000")[0]
@@ -59,9 +57,9 @@ func TestRetrieveProduct_PageNotFound(t *testing.T) {
 
 func TestRetrieveProduct_ProductNotFound(t *testing.T) {
 	client := getMockClientwithFile("./test/failed.html")
-	c, err := NewScraper(client)
+	c, err := NewCrawler(client)
 	if c == nil || err != nil {
-		t.Errorf("initializing scraper failed: %v", err)
+		t.Errorf("initializing crawler failed: %v", err)
 	}
 
 	r := c.Scraping("1000000")[0]
@@ -75,9 +73,9 @@ func TestRetrieveProduct_ProductNotFound(t *testing.T) {
 
 func TestRetrieveProduct_Success(t *testing.T) {
 	client := getMockClientwithFile("./test/success.html")
-	c, err := NewScraper(client)
+	c, err := NewCrawler(client)
 	if c == nil || err != nil {
-		t.Errorf("initializing scraper failed: %v", err)
+		t.Errorf("initializing crawler failed: %v", err)
 	}
 
 	r := c.Scraping(mockResult.ProductCode)[0]
@@ -113,7 +111,7 @@ func TestRetrieveProduct_Success(t *testing.T) {
 }
 
 func getMockClientwithFile(name string) *MockClient {
-	getMockHtmlPage()
+	// getMockHtmlPage()
 
 	file, err := os.ReadFile(name)
 	if err != nil {
@@ -143,6 +141,7 @@ var mockResult = &Result{
 	Err: nil,
 }
 
+// helper
 func getMockHtmlPage() {
 	if err := download("./test/success.html", "https://www.bellemaison.jp/shop/commodity/0000/1129250"); err != nil {
 		panic(err)
@@ -172,57 +171,4 @@ func download(filepath string, url string) error {
 	// write to file
 	_, err = io.Copy(out, resp.Body)
 	return err
-}
-
-func TestNewScraper(t *testing.T) {
-	type args struct {
-		httpClient []HTTPClient
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    Scraper
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewScraper(tt.args.httpClient...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewScraper() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewScraper() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_scraper_ScrapingProducts(t *testing.T) {
-	type fields struct {
-		httpClient HTTPClient
-	}
-	type args struct {
-		productCodes []string
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   []*Result
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &scraper{
-				httpClient: tt.fields.httpClient,
-			}
-			if got := c.Scraping(tt.args.productCodes...); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("scraper.ScrapingProducts() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }

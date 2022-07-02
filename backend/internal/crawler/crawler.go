@@ -1,4 +1,4 @@
-package scraper
+package crawler
 
 import (
 	"bytes"
@@ -40,13 +40,13 @@ type Style struct {
 	Stock     uint
 }
 
-// Scraper
-type Scraper interface {
+// Crawler
+type Crawler interface {
 	Scraping(productCodes ...string) []*Result
 }
 
-// scraper implements Scraper interface
-type scraper struct {
+// crawler implements Crawler interface
+type crawler struct {
 	httpClient HTTPClient
 }
 
@@ -56,9 +56,9 @@ type HTTPClient interface {
 
 var ErrMultipleClient = errors.New("more than one http client assigned")
 
-// NewScraper return a Scraper instance,
+// NewCrawler return a Crawler instance,
 // default http client will be used if no httpClient provided
-func NewScraper(httpClient ...HTTPClient) (Scraper, error) {
+func NewCrawler(httpClient ...HTTPClient) (Crawler, error) {
 	if len(httpClient) > 1 {
 		return nil, ErrMultipleClient
 	}
@@ -75,7 +75,7 @@ func NewScraper(httpClient ...HTTPClient) (Scraper, error) {
 		client = httpClient[0]
 	}
 
-	return &scraper{httpClient: client}, nil
+	return &crawler{httpClient: client}, nil
 }
 
 // http response
@@ -86,7 +86,7 @@ type response struct {
 }
 
 // ScrapingProducts fetches and parses multiple products from the site
-func (c *scraper) Scraping(productCodes ...string) []*Result {
+func (c *crawler) Scraping(productCodes ...string) []*Result {
 	size := len(productCodes)
 
 	if size <= 0 {
@@ -203,15 +203,14 @@ func parseHTML(html []byte) (*Product, error) {
 	var colour, size, current, stock, sku string
 	page.Find("#commodityStandardAreaMessage").Parent().Each(func(i int, s *goquery.Selection) {
 		s.Find(".standard-info").Each(func(i int, s *goquery.Selection) {
-			colour, _ = s.Attr("data-standard-detail2")
 
+			colour, _ = s.Attr("data-standard-detail2")
 			// check colour info
 			if colour == "-" {
 				colour = "Standard"
 			}
 
 			size, _ = s.Attr("data-standard-detail1")
-
 			// check size info
 			if size == "-" {
 				size = "Standard"
@@ -224,14 +223,15 @@ func parseHTML(html []byte) (*Product, error) {
 				}
 			}
 
-			current, _ = s.Attr("data-price")
-			stock, _ = s.Attr("data-stock-status")
 			sku, _ = s.Attr("data-nucleus-sku-code")
 
+			current, _ = s.Attr("data-price")
 			currentPrice, err := strconv.ParseUint(strings.ReplaceAll(current, ",", ""), 10, 64)
 			if err != nil {
 				currentPrice = 0
 			}
+
+			stock, _ = s.Attr("data-stock-status")
 			stockNo := parseStock(stock)
 
 			image := ""
