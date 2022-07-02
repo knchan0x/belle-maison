@@ -101,7 +101,7 @@ func (s *scheduler) GenerateDailyReport() {
 	}
 
 	if emailMsg != "" {
-		if err := email.SendEmail("Belle Masion Price Tracker", emailMsg); err != nil {
+		if err := email.SendEmail("Belle Maison Price Tracker", emailMsg); err != nil {
 			log.Println(err)
 		}
 	}

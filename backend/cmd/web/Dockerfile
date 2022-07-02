@@ -13,11 +13,11 @@ ENV GO115MODULE=on \
     GOOS=linux \ 
     GOARCH=amd64
 
-# copy the build content specified to dest's /go/Github/belle-masion (golang-alpine's root folder is /go)
-COPY .  Github/belle-masion
+# copy the build content specified to dest's /go/Github/belle-maison (golang-alpine's root folder is /go)
+COPY .  Github/belle-maison
 
 # move to working directory
-WORKDIR Github/belle-masion/backend/cmd/web
+WORKDIR Github/belle-maison/backend/cmd/web
 
 # build executable
 RUN go build -o web .
@@ -33,18 +33,18 @@ FROM alpine:3.15
 
 # copy executable and config file to project root
 COPY --from=builder \ 
-        /go/Github/belle-masion/backend/cmd/web/web \ 
-        /go/Github/belle-masion/config.yaml \ 
+        /go/Github/belle-maison/backend/cmd/web/web \ 
+        /go/Github/belle-maison/config.yaml \ 
         ./
 
 # copy login page's html page, js and css to static folder
 COPY --from=builder \ 
-        /go/Github/belle-masion/backend/cmd/web/static/ \ 
+        /go/Github/belle-maison/backend/cmd/web/static/ \ 
         ./static/
 
 # copy dashboard to to project/page
 COPY --from=builder \ 
-        /go/Github/belle-masion/dashboard/dist/ \ 
+        /go/Github/belle-maison/dashboard/dist/ \ 
         ./static/
 
 # expose port

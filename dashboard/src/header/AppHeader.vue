@@ -9,7 +9,7 @@ import AddButton from './AddProductButton.vue';
             <div class="logo">
                 <a-space align="center">
                     <fund-filled :style="{ fontSize: '48px', color: '#fff' }" />
-                    <p :style="{ fontSize: '24px', color: '#fff' }">Belle Masion Price Tracker</p>
+                    <p :style="{ fontSize: '24px', color: '#fff' }">Belle Maison Price Tracker</p>
                 </a-space>
             </div>
         </a-col>

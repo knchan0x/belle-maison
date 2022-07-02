@@ -13,11 +13,11 @@ ENV GO115MODULE=on \
     GOOS=linux \ 
     GOARCH=amd64
 
-# copy the build content specified to dest's /go/Github/belle-masion (golang-alpine's root folder is /go)
-COPY .  Github/belle-masion
+# copy the build content specified to dest's /go/Github/belle-maison (golang-alpine's root folder is /go)
+COPY .  Github/belle-maison
 
 # move to working directory
-WORKDIR Github/belle-masion/backend/cmd/scheduler
+WORKDIR Github/belle-maison/backend/cmd/scheduler
 
 # build executable
 RUN go build -o scheduler .
@@ -33,8 +33,8 @@ FROM alpine:3.15
 
 # copy executable and config file to project root
 COPY --from=builder \ 
-        /go/Github/belle-masion/backend/cmd/scheduler/scheduler \ 
-        /go/Github/belle-masion/config.yaml \ 
+        /go/Github/belle-maison/backend/cmd/scheduler/scheduler \ 
+        /go/Github/belle-maison/config.yaml \ 
         ./
 
 # run executable
