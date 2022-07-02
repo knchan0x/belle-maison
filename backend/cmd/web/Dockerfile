@@ -33,7 +33,7 @@ FROM alpine:3.15
 
 # copy executable and config file to project root
 COPY --from=builder \ 
-        /go/Github/belle-masion/backend/cmd/web/endpoint \ 
+        /go/Github/belle-masion/backend/cmd/web/web \ 
         /go/Github/belle-masion/config.yaml \ 
         ./
 
