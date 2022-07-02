@@ -3,7 +3,7 @@ package product
 import (
 	"errors"
 
-	"github.com/knchan0x/belle-maison/backend/internal/scraper"
+	"github.com/knchan0x/belle-maison/backend/internal/crawler"
 	"gorm.io/gorm"
 )
 
@@ -33,8 +33,8 @@ type Price struct {
 
 var EMPTY_PRODUCT = errors.New("no product info for creation")
 
-// New accepts *scraper.Result and returns *Product
-func New(dbClient *gorm.DB, result *scraper.Result) (*Product, error) {
+// New accepts *crawler.Result and returns *Product
+func New(dbClient *gorm.DB, result *crawler.Result) (*Product, error) {
 	if result.Product == nil {
 		return nil, EMPTY_PRODUCT
 	}
@@ -152,10 +152,10 @@ func (p *Product) Delete(dbClient *gorm.DB) error {
 	})
 }
 
-func (p *Product) Update(dbClient *gorm.DB, result *scraper.Result) error {
+func (p *Product) Update(dbClient *gorm.DB, result *crawler.Result) error {
 
 	// product has been removed, set price == 0 and stock == 0 for all styles
-	if result.Err == scraper.PRODUCT_NOT_FOUND {
+	if result.Err == crawler.PRODUCT_NOT_FOUND {
 		for idx := range p.Styles {
 			p.Styles[idx].PriceHistories = append(p.Styles[idx].PriceHistories, Price{Price: 0, Stock: 0})
 		}
