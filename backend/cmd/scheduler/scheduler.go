@@ -48,7 +48,7 @@ func (s *scheduler) StartScraping() {
 
 	// fetch
 	results := s.crawler.Scraping(s.jobs...)
-	s.jobs = []string{} // Clean jobs
+	s.cleanJobs()
 
 	for _, result := range results {
 		if result.Err != nil && result.Err != crawler.PRODUCT_NOT_FOUND {
