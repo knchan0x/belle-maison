@@ -1,11 +1,8 @@
-const base = () => {
-    let base = import.meta.env.BASE_URL;
-    if (base.slice(-1) == '/') {
-        return base.slice(0, -1)
-    } else {
-        return base
-    }
-}
+let base = import.meta.env.BASE_URL;
+
+if (base.slice(-1) == '/') {
+    base = base.slice(0, -1)
+};
 
 export const basePathGetProduct = base + '/api/product/';
 export const basePathAddTarget = base + '/api/target/';
