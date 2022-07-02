@@ -27,7 +27,7 @@ const (
 	filePath_root_docker    = "./static"
 	filePath_root_localhost = "./static"
 
-	urlPath_root        = "/bellemasion"
+	urlPath_root        = "/bellemaison"
 	urlPrefix_dashboard = "/dashboard"
 	urlPrefix_login     = "/login"
 	urlPrefix_api       = "/api"
