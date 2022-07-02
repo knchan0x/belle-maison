@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/go-co-op/gocron"
+	"github.com/knchan0x/belle-maison/backend/internal/crawler"
 	"github.com/knchan0x/belle-maison/backend/internal/db/model/product"
 	"github.com/knchan0x/belle-maison/backend/internal/db/model/target"
 	"github.com/knchan0x/belle-maison/backend/internal/email"
-	"github.com/knchan0x/belle-maison/backend/internal/scraper"
 	"gorm.io/gorm"
 )
 
@@ -17,20 +17,20 @@ import (
 // It is a wrapper of *gocron.Scheduler.
 type scheduler struct {
 	*gocron.Scheduler
-	scraper  scraper.Scraper
+	crawler  crawler.Crawler
 	dbClient *gorm.DB
 	jobs     []string // tasks pending to perform
 }
 
 // NewScheduler returns new scheduler
 func NewScheduler(dbClient *gorm.DB) *scheduler {
-	c, err := scraper.NewScraper()
+	c, err := crawler.NewCrawler()
 	if err != nil {
-		log.Fatalf("failed to initialize scraper: %v", err)
+		log.Fatalf("failed to initialize crawler: %v", err)
 	}
 
 	s := &scheduler{
-		scraper:  c,
+		crawler:  c,
 		dbClient: dbClient,
 		jobs:     []string{},
 	}
@@ -38,7 +38,7 @@ func NewScheduler(dbClient *gorm.DB) *scheduler {
 	return s
 }
 
-// StartScraping activates scraper to preform crawling tasks
+// StartScraping activates crawler to preform scraping tasks
 func (s *scheduler) StartScraping() {
 	log.Println("Start scraping...")
 	if s.jobs == nil || len(s.jobs) <= 0 {
@@ -47,10 +47,11 @@ func (s *scheduler) StartScraping() {
 	}
 
 	// fetch
-	results := s.scraper.Scraping(s.jobs...)
+	results := s.crawler.Scraping(s.jobs...)
+	s.jobs = []string{} // Clean jobs
 
 	for _, result := range results {
-		if result.Err != nil && result.Err != scraper.PRODUCT_NOT_FOUND {
+		if result.Err != nil && result.Err != crawler.PRODUCT_NOT_FOUND {
 			s.jobs = append(s.jobs, result.ProductCode)
 			continue
 		}
@@ -83,7 +84,7 @@ func (s *scheduler) GenerateDailyReport() {
 	targets := target.GetAll(s.dbClient)
 	emailMsg := ""
 	for _, target := range targets {
-		// meet target
+		// hit target
 		if target.Price <= target.TargetPrice {
 			if emailMsg == "" {
 				emailMsg += "The following products have achieved your target price: \n"

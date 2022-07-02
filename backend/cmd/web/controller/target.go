@@ -9,9 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/knchan0x/belle-maison/backend/cmd/web/middleware"
 	"github.com/knchan0x/belle-maison/backend/internal/cache"
+	"github.com/knchan0x/belle-maison/backend/internal/crawler"
 	"github.com/knchan0x/belle-maison/backend/internal/db/model/product"
 	"github.com/knchan0x/belle-maison/backend/internal/db/model/target"
-	"github.com/knchan0x/belle-maison/backend/internal/scraper"
 	"gorm.io/gorm"
 )
 
@@ -20,7 +20,7 @@ const (
 )
 
 // add target
-func AddTarget(dbClient *gorm.DB, s scraper.Scraper) func(*gin.Context) {
+func AddTarget(dbClient *gorm.DB, s crawler.Crawler) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		productCode := ctx.GetString(middleware.Validated_ProductCode)
 
@@ -28,13 +28,13 @@ func AddTarget(dbClient *gorm.DB, s scraper.Scraper) func(*gin.Context) {
 		var wg sync.WaitGroup
 		wg.Add(2)
 
-		var r *scraper.Result
+		var r *crawler.Result
 		go func() {
-			if c, ok := cache.Get("scraper_result_" + productCode); ok {
-				r = c.(*scraper.Result)
+			if c, ok := cache.Get("crawler_result_" + productCode); ok {
+				r = c.(*crawler.Result)
 			} else {
 				r = s.Scraping(productCode)[0]
-				cache.Add("scraper_result_"+productCode, r, time.Hour)
+				cache.Add("crawler_result_"+productCode, r, time.Hour)
 			}
 			wg.Done()
 		}()

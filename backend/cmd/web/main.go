@@ -16,9 +16,9 @@ import (
 	"github.com/knchan0x/belle-maison/backend/cmd/web/middleware"
 	"github.com/knchan0x/belle-maison/backend/cmd/web/user"
 	"github.com/knchan0x/belle-maison/backend/internal/config"
+	"github.com/knchan0x/belle-maison/backend/internal/crawler"
 	"github.com/knchan0x/belle-maison/backend/internal/db"
 	"github.com/knchan0x/belle-maison/backend/internal/email"
-	"github.com/knchan0x/belle-maison/backend/internal/scraper"
 )
 
 const (
@@ -94,10 +94,10 @@ func main() {
 	// activate auth middleware
 	middleware.ActivateRolePermit(!config.GetBool("debug"))
 
-	// configure scraper
-	scraper, err := scraper.NewScraper()
+	// configure crawler
+	crawler, err := crawler.NewCrawler()
 	if err != nil {
-		log.Fatalf("failed to initialize scraper: %v", err)
+		log.Fatalf("failed to initialize crawler: %v", err)
 	}
 
 	// set gin mode
@@ -106,7 +106,7 @@ func main() {
 	// configure gin
 	web := gin.Default()
 	if config.GetBool("debug") {
-		web.Use(middleware.AllowCrossOrigin("http://localhost:3000"))
+		web.Use(middleware.AllowCrossOrigin("http://localhost:3000")) // CORS
 	}
 
 	// add root for easier configure root path
@@ -117,28 +117,34 @@ func main() {
 		ctx.Redirect(http.StatusFound, urlPath_dashboard)
 	})
 
+	// check file location
 	fileBasePath := ""
 	if _, err := os.Stat(filePath_root_docker + "/login.html"); err == nil {
 		fileBasePath = filePath_root_docker
 	} else {
 		fileBasePath = filePath_root_localhost
 	}
+
+	// assets
 	root.Static(urlPrefix_asset, fileBasePath+"/assets")
 
+	// login
 	root.StaticFile(urlPrefix_login, fileBasePath+"/login.html")    // GET
 	root.POST(urlPrefix_login, controller.Login(urlPath_dashboard)) // POST
 
+	// dashboard
 	dashboard := root.Group(urlPrefix_dashboard,
 		middleware.AccessControl(middleware.Admin, middleware.AuthMode_Redirect, urlPath_login))
-	dashboard.StaticFile("/", fileBasePath+"/index.html")
+	dashboard.StaticFile("/", fileBasePath+"/index.html") // dashboard html
 
+	// api
 	api := root.Group(urlPrefix_api,
 		middleware.AccessControl(middleware.Admin, middleware.AuthMode_Unauthorized))
 
 	// get product info
 	api.GET("/product/:productCode",
 		middleware.Validate(middleware.ProductCode),
-		controller.GetProduct(scraper))
+		controller.GetProduct(crawler))
 
 	// POST content: colour, size
 	api.POST("/target/:productCode",
@@ -146,7 +152,7 @@ func main() {
 		middleware.Validate(middleware.TargetColour),
 		middleware.Validate(middleware.TargetSize),
 		middleware.Validate(middleware.TargetPrice),
-		controller.AddTarget(dbClient, scraper))
+		controller.AddTarget(dbClient, crawler))
 
 	api.DELETE("/target/:targetId",
 		middleware.Validate(middleware.TargetId),

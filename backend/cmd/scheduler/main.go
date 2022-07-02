@@ -61,12 +61,12 @@ func main() {
 	if _, err := s.Every(1).Day().At("04:00").Tag("daily-report").Do(s.GenerateDailyReport); err != nil {
 		log.Printf("Daily-report: %v", err)
 	}
-	if _, err := s.Every(1).Hour().At("00:00").Tag("crawling").Do(s.StartScraping); err != nil {
+	if _, err := s.Every(4).Hour().At("00:00").Tag("scraping").Do(s.StartScraping); err != nil {
 		log.Printf("Scraping: %v", err)
 	}
 
-	// start scheduler / scraper
-	log.Println("Scraper starts working...")
+	// start scheduler / crawler
+	log.Println("Crawler starts working...")
 	s.StartAsync()
 
 	// wait for interrupt signal
@@ -78,12 +78,12 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	<-quit
-	log.Println("Shutting down scraper...")
+	log.Println("Shutting down crawler...")
 
 	// close db connection before exit
 	if sqlDB, err := dbClient.DB(); err == nil {
 		sqlDB.Close()
 	}
 
-	log.Println("Scraper exited")
+	log.Println("Crawler exited")
 }
