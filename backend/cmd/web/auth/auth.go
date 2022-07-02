@@ -20,10 +20,10 @@ func SetCookieName(name string) {
 }
 
 const (
-	salt = "belle-masion"
+	salt = "BM"
 )
 
-var sessionDB = cache.New("InMemory")
+var sessionDB = cache.New(cache.IN_MEMORY)
 
 // VerifyToken check is token provided exist in cache
 func VerifyToken(token string) user.User {

@@ -6,6 +6,8 @@ import (
 
 const (
 	NEVER_EXPIRED = 0
+
+	IN_MEMORY = "InMemory"
 )
 
 type cacheNewFunc func() Cache
@@ -13,8 +15,7 @@ type cacheNewFunc func() Cache
 var CacheNewFuncs = make(map[string]cacheNewFunc)
 
 func init() {
-	CacheNewFuncs["InMemory"] = NewInMemoryMap
-	CacheNewFuncs["InMemoryMutux"] = NewInMemoryMutex
+	CacheNewFuncs[IN_MEMORY] = NewInMemoryMap
 }
 
 type Cache interface {
@@ -30,7 +31,7 @@ var globalCache Cache
 func New(t string) Cache {
 	f, ok := CacheNewFuncs[t]
 	if !ok {
-		return CacheNewFuncs["InMemory"]()
+		return CacheNewFuncs[IN_MEMORY]()
 	}
 	return f()
 }
@@ -38,7 +39,7 @@ func New(t string) Cache {
 // Add adds item to global cache
 func Add(k string, v interface{}, expiring time.Duration) {
 	if globalCache == nil {
-		globalCache = New("InMemory")
+		globalCache = New(IN_MEMORY)
 	}
 
 	globalCache.Add(k, v, expiring)
@@ -47,7 +48,7 @@ func Add(k string, v interface{}, expiring time.Duration) {
 // Get gets item from global cache
 func Get(k string) (v interface{}, ok bool) {
 	if globalCache == nil {
-		globalCache = New("InMemory")
+		globalCache = New(IN_MEMORY)
 	}
 
 	return globalCache.Get(k)
@@ -56,7 +57,7 @@ func Get(k string) (v interface{}, ok bool) {
 // Delete deletes item in global cache
 func Delete(k string) {
 	if globalCache == nil {
-		globalCache = New("InMemory")
+		globalCache = New(IN_MEMORY)
 	}
 
 	globalCache.Delete(k)
