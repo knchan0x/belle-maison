@@ -8,8 +8,8 @@
 # Test binary, built with `go test -c`
 *.test
 
-# exclude html files for test
-internal/scraper/test/
+# exclude html files for testing
+backend/internal/crawler/test/
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
@@ -24,7 +24,7 @@ config.*
 docker-compose.*
 
 # other than config package
-!internal/config/config.go
+!backend/internal/config/config.go
 
 # Editor directories and files
 .vscode
@@ -35,5 +35,5 @@ dashboard/cypress/
 dashboard/dist/
 
 # Vue generated static files
-cmd/web/static/index.html
-cmd/web/static/assets/index.*.*
+backend/cmd/web/static/index.html
+backend/cmd/web/static/assets/index.*.*
