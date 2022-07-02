@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/knchan0x/belle-maison/cmd/web/auth"
+	"github.com/knchan0x/belle-maison/backend/cmd/web/auth"
 )
 
 type AuthMode string

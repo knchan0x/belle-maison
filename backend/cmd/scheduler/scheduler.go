@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/go-co-op/gocron"
-	"github.com/knchan0x/belle-maison/internal/db/model/product"
-	"github.com/knchan0x/belle-maison/internal/db/model/target"
-	"github.com/knchan0x/belle-maison/internal/email"
-	"github.com/knchan0x/belle-maison/internal/scraper"
+	"github.com/knchan0x/belle-maison/backend/internal/db/model/product"
+	"github.com/knchan0x/belle-maison/backend/internal/db/model/target"
+	"github.com/knchan0x/belle-maison/backend/internal/email"
+	"github.com/knchan0x/belle-maison/backend/internal/scraper"
 	"gorm.io/gorm"
 )
 

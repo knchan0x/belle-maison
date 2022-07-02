@@ -3,7 +3,7 @@ package product
 import (
 	"errors"
 
-	"github.com/knchan0x/belle-maison/internal/scraper"
+	"github.com/knchan0x/belle-maison/backend/internal/scraper"
 	"gorm.io/gorm"
 )
 

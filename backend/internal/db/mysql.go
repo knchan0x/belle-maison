@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	p "github.com/knchan0x/belle-maison/internal/db/model/product"
-	t "github.com/knchan0x/belle-maison/internal/db/model/target"
+	p "github.com/knchan0x/belle-maison/backend/internal/db/model/product"
+	t "github.com/knchan0x/belle-maison/backend/internal/db/model/target"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/knchan0x/belle-maison/cmd/web/middleware"
-	"github.com/knchan0x/belle-maison/internal/cache"
-	"github.com/knchan0x/belle-maison/internal/scraper"
+	"github.com/knchan0x/belle-maison/backend/cmd/web/middleware"
+	"github.com/knchan0x/belle-maison/backend/internal/cache"
+	"github.com/knchan0x/belle-maison/backend/internal/scraper"
 )
 
 const (

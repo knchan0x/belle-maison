@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/knchan0x/belle-maison/cmd/web/user"
-	"github.com/knchan0x/belle-maison/internal/cache"
+	"github.com/knchan0x/belle-maison/backend/cmd/web/user"
+	"github.com/knchan0x/belle-maison/backend/internal/cache"
 )
 
 var cookieName = "_cookie_"

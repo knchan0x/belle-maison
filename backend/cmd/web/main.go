@@ -11,14 +11,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/knchan0x/belle-maison/cmd/web/auth"
-	"github.com/knchan0x/belle-maison/cmd/web/controller"
-	"github.com/knchan0x/belle-maison/cmd/web/middleware"
-	"github.com/knchan0x/belle-maison/cmd/web/user"
-	"github.com/knchan0x/belle-maison/internal/config"
-	"github.com/knchan0x/belle-maison/internal/db"
-	"github.com/knchan0x/belle-maison/internal/email"
-	"github.com/knchan0x/belle-maison/internal/scraper"
+	"github.com/knchan0x/belle-maison/backend/cmd/web/auth"
+	"github.com/knchan0x/belle-maison/backend/cmd/web/controller"
+	"github.com/knchan0x/belle-maison/backend/cmd/web/middleware"
+	"github.com/knchan0x/belle-maison/backend/cmd/web/user"
+	"github.com/knchan0x/belle-maison/backend/internal/config"
+	"github.com/knchan0x/belle-maison/backend/internal/db"
+	"github.com/knchan0x/belle-maison/backend/internal/email"
+	"github.com/knchan0x/belle-maison/backend/internal/scraper"
 )
 
 const (

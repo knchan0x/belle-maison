@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/knchan0x/belle-maison/internal/config"
-	"github.com/knchan0x/belle-maison/internal/db"
-	"github.com/knchan0x/belle-maison/internal/email"
+	"github.com/knchan0x/belle-maison/backend/internal/config"
+	"github.com/knchan0x/belle-maison/backend/internal/db"
+	"github.com/knchan0x/belle-maison/backend/internal/email"
 )
 
 func init() {
