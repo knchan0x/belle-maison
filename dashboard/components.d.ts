@@ -26,8 +26,6 @@ declare module '@vue/runtime-core' {
     ASpin: typeof import('ant-design-vue/es')['Spin']
     ATable: typeof import('ant-design-vue/es')['Table']
     ProductInfo: typeof import('./src/components/ProductInfo.vue')['default']
-    RouterLink: typeof import('vue-router')['RouterLink']
-    RouterView: typeof import('vue-router')['RouterView']
   }
 }
 
