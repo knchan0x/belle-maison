@@ -17,7 +17,7 @@ ENV GO115MODULE=on \
 COPY .  Github/belle-masion
 
 # move to working directory
-WORKDIR Github/belle-masion/cmd/scheduler
+WORKDIR Github/belle-masion/backend/cmd/scheduler
 
 # build executable
 RUN go build -o scheduler .
@@ -33,7 +33,7 @@ FROM alpine:3.15
 
 # copy executable and config file to project root
 COPY --from=builder \ 
-        /go/Github/belle-masion/cmd/scheduler/scheduler \ 
+        /go/Github/belle-masion/backend/cmd/scheduler/scheduler \ 
         /go/Github/belle-masion/config.yaml \ 
         ./
 

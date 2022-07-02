@@ -17,7 +17,7 @@ ENV GO115MODULE=on \
 COPY .  Github/belle-masion
 
 # move to working directory
-WORKDIR Github/belle-masion/cmd/web
+WORKDIR Github/belle-masion/backend/cmd/web
 
 # build executable
 RUN go build -o web .
@@ -33,13 +33,13 @@ FROM alpine:3.15
 
 # copy executable and config file to project root
 COPY --from=builder \ 
-        /go/Github/belle-masion/cmd/web/endpoint \ 
+        /go/Github/belle-masion/backend/cmd/web/endpoint \ 
         /go/Github/belle-masion/config.yaml \ 
         ./
 
 # copy login page's html page, js and css to static folder
 COPY --from=builder \ 
-        /go/Github/belle-masion/cmd/web/static/ \ 
+        /go/Github/belle-masion/backend/cmd/web/static/ \ 
         ./static/
 
 # copy dashboard to to project/page
