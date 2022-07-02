@@ -1,4 +1,4 @@
-import { basePathGetProduct } from '@/config';
+import { basePathGetProduct } from '@/path';
 import type { StyleOption } from '../components/ProductInfo.vue';
 import axios from 'axios';
 

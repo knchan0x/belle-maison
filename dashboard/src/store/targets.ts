@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
-import { basePathGetTargets, basePathDeleteTarget, basePathAddTarget } from '@/config'
+import { basePathGetTargets, basePathDeleteTarget, basePathAddTarget } from '@/path'
 
 export const useTargets = defineStore('Targets', {
     state: () => ({
