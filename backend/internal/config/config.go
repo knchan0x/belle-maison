@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	configFileLocation_Debug      = "../../config.yaml"
+	configFileLocation_Debug      = "../../../config.yaml"
 	configFileLocation_Production = "./config.yaml"
 )
 
@@ -17,7 +17,7 @@ var (
 	FileNotFound = errors.New("config file not found")
 )
 
-// LoadConfig loads the configuations from config.yaml
+// LoadConfig loads the configurations from config.yaml
 func LoadConfig() error {
 
 	path := ""
