@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { FundFilled, } from '@ant-design/icons-vue';
 import AddButton from './AddProductButton.vue';
+import LogoutButton from './LogoutButton.vue';
 </script>
 
 <template>
@@ -17,6 +18,9 @@ import AddButton from './AddProductButton.vue';
             <a-row justify="end">
                 <a-col>
                     <add-button />
+                </a-col>
+                <a-col>
+                    <logout-button />
                 </a-col>
             </a-row>
         </a-col>
