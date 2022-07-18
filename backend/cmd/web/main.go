@@ -134,11 +134,12 @@ func main() {
 	root.POST(urlPrefix_login, controller.Login(urlPath_dashboard)) // POST
 
 	// logout
-	root.POST(urlPrefix_logout, controller.Logout(urlPath_login))
+	root.POST(urlPrefix_logout, controller.Logout(urlPath_root))
 
 	// dashboard
 	dashboard := root.Group(urlPrefix_dashboard,
-		middleware.AccessControl(middleware.Admin, middleware.AuthMode_Redirect, urlPath_login))
+		middleware.AccessControl(middleware.Admin, middleware.AuthMode_Redirect, urlPath_login),
+		middleware.NoCache())
 	dashboard.StaticFile("/", fileBasePath+"/index.html") // dashboard html
 
 	// api

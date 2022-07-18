@@ -7,7 +7,11 @@ const logout = () => {
     axios({
         method: 'POST',
         url: logoutURL,
-    }).catch((e: any) => { 
+    })
+    .then((resp: any) => {
+        window.location.reload();
+    })
+    .catch((e: any) => { 
         message.error('Error: ' + e.message + '. Please try again.'); 
     })
 };
