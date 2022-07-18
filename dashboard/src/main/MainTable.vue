@@ -42,6 +42,10 @@ const confirmDelete = async (id: number) => {
   }
 }
 
+const productCodeToURL = (code: string) => {
+  return "https://www.bellemaison.jp/shop/commodity/0000/" + code
+}
+
 onBeforeMount(() => {
   targets.refresh();
 })
@@ -50,6 +54,9 @@ onBeforeMount(() => {
 <template>
   <a-table :columns="columns" :row-key="(record: Product) => record.ID" :data-source="targets.list">
     <template #bodyCell="{ text, column, index, record }">
+      <template v-if="column.dataIndex === 'ProductCode'">
+        <a :href="productCodeToURL(text)">{{ text }}</a>
+      </template>
       <template v-if="column.dataIndex === 'ImageUrl'">
         <a-image :width="100" :src="text" />
       </template>
