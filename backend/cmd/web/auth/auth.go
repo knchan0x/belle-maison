@@ -48,3 +48,7 @@ func VerifyUser(username, password string) (string, bool) {
 	sessionDB.Add(token, *user, time.Hour)
 	return token, true
 }
+
+func RemoveToken(token string) {
+	sessionDB.Delete(token)
+}

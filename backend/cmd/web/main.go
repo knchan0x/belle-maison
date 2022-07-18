@@ -30,6 +30,7 @@ const (
 	urlPath_root        = "/bellemaison"
 	urlPrefix_dashboard = "/dashboard"
 	urlPrefix_login     = "/login"
+	urlPrefix_logout    = "/logout"
 	urlPrefix_api       = "/api"
 	urlPrefix_asset     = "/assets"
 )
@@ -131,6 +132,9 @@ func main() {
 	// login
 	root.StaticFile(urlPrefix_login, fileBasePath+"/login.html")    // GET
 	root.POST(urlPrefix_login, controller.Login(urlPath_dashboard)) // POST
+
+	// logout
+	root.POST(urlPrefix_logout, controller.Logout(urlPath_login))
 
 	// dashboard
 	dashboard := root.Group(urlPrefix_dashboard,
