@@ -84,15 +84,21 @@ func (s *scheduler) GenerateDailyReport() {
 	targets := target.GetAll(s.dbClient)
 	emailMsg := ""
 	for _, target := range targets {
+		if target.Stock <= 0 {
+			continue // by pass if no stock available
+		}
+
 		// hit target
 		if target.Price <= target.TargetPrice {
 			if emailMsg == "" {
 				emailMsg += "The following products have achieved your target price: \n"
 			}
 			emailMsg += fmt.Sprintf("%s: target price: %d, current price: %d\n", target.Name, target.TargetPrice, target.Price)
+			continue
 		}
+
 		// low stock
-		if target.Price >= target.TargetPrice && target.Stock <= LowStockThreshold {
+		if target.Stock <= LowStockThreshold {
 			if emailMsg == "" {
 				emailMsg += "The following products have not achieved your target price but the stock is low now: \n"
 			}
