@@ -16,12 +16,14 @@ import LogoutButton from './LogoutButton.vue';
         </a-col>
         <a-col :span="12">
             <a-row justify="end">
-                <a-col>
-                    <add-button />
-                </a-col>
-                <a-col>
-                    <logout-button />
-                </a-col>
+                <a-space>
+                    <a-col>
+                        <add-button />
+                    </a-col>
+                    <a-col>
+                        <logout-button />
+                    </a-col>
+                </a-space>
             </a-row>
         </a-col>
     </a-row>
