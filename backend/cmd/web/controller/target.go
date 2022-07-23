@@ -50,13 +50,13 @@ func AddTarget(dbClient *gorm.DB, s crawler.Crawler) func(*gin.Context) {
 
 		if err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server rrror"})
+				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 				return
 			}
 
 			p, err = product.New(dbClient, r)
 			if err != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server rrror"})
+				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 				return
 			}
 		}
@@ -78,7 +78,13 @@ func AddTarget(dbClient *gorm.DB, s crawler.Crawler) func(*gin.Context) {
 			p.ID,
 			targetStyle.ID,
 			uint(ctx.GetInt(middleware.Validated_TargetPrice))); err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server rrror"})
+
+			if err.Error() == "target exists" {
+				ctx.JSON(http.StatusBadRequest, gin.H{"error": "target exists"})
+			} else {
+				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			}
+
 			return
 		}
 
