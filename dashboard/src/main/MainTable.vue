@@ -38,7 +38,14 @@ const confirmDelete = async (id: number) => {
     await targets.delete(id);
     message.success('Successful');
   } catch (e: any) {
-    message.error('Error: ' + e.message + '. Please try again.');
+    if (e.response) {
+      let msg = e.response.data as {
+        error: String;
+      }
+      message.error('Error: ' + msg.error + '. Please try again.');
+    } else {
+      message.error('Error: ' + e.message + '. Please try again.');
+    }
   }
 }
 
